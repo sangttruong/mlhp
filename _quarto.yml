@@ -1,0 +1,140 @@
+project:
+  type: book
+  preview:
+    port: 4200
+
+resources:
+  - CNAME
+  
+reference-location: document # footnotes in margin
+citation-location: document # citations in margin
+link-citations: true       # citations link to references
+
+bibliography: references.bib
+reference-section-title: References
+
+crossref:
+  fig-prefix: Figure
+  tbl-prefix: Table
+  sec-prefix: Section
+
+language:
+  crossref-ch-prefix: Chapter
+  crossref-apx-prefix: Appendix
+
+df-print: kable
+filters:
+  - boxes
+  - pseudocode
+
+format:
+  html:
+    theme:
+      light: [flatly, resources/scss/global.scss]
+      dark: [darkly, resources/scss/global.scss]
+    published-title: "Updated"
+    code-fold: false
+    code-overflow: scroll
+    code-line-numbers: true
+    code-tools: true
+    code-copy: True
+    mathjax: 
+      macros:
+        mathbbm: ["\\mathbbm{#1}", 1]
+    include-in-header:
+      text: |
+        <script>
+        MathJax = {
+          loader: {
+            load: ['[tex]/boldsymbol']
+          },
+          tex: {
+            tags: "all",
+            inlineMath: [['$','$'], ['\\(','\\)']],
+            displayMath: [['$$','$$'], ['\\[','\\]']],
+            processEscapes: true,
+            processEnvironments: true,
+            packages: {
+              '[+]': ['boldsymbol']
+            }
+          }
+        };
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+
+  pdf:
+    documentclass: scrreprt
+    classoption: [numbers=noenddot,DIV=11]
+    keep-tex: true
+    include-in-header: resources/tex/preamble.tex
+    include-after-body: resources/tex/postamble.tex
+    template-partials:
+      - resources/tex/partials/before-body.tex
+    citeproc: false # don't run pandoc default citation handling
+    csl: chicago-author-date-no-em-dash.csl
+    filters:
+      - section-bibliographies
+    toc-depth: 2 # level 1 headings (i.e. parts and chapters)
+    toc-title: Table of Contents # title of table of contents
+    links-as-notes: true # turn URLs into sidenotes
+    citecolor: DarkGreen # tufte color
+    linkcolor: DarkBlue # tufte color
+    urlcolor: DarkGreen # tufte color
+    code-overflow: wrap
+    code-line-numbers: true
+    include-before-body:
+      text: |
+        \RecustomVerbatimEnvironment{verbatim}{Verbatim}{
+          showspaces = false,
+          showtabs = false,
+          breaksymbolleft={},
+          breaklines
+        }
+        \numberwithin{algorithm}{chapter}
+        \algrenewcommand{\algorithmiccomment}[1]{\hskip3em$\rightarrow$ #1}
+
+
+knitr:
+  opts_chunk:
+    comment: "#>"
+    collapse: TRUE
+    cache.lazy: FALSE
+    dev: "png"
+    dpi: 300
+
+execute: 
+  eval: false
+  echo: true
+  message: false
+  warning: false
+  error: false
+  cache: true
+  highlight-style: github
+  tidy: true
+
+book:
+  title: "Machine Learning from Human Preferences"
+  subtitle: ""
+  author:
+    - name: Sang T. Truong
+      orcid: 0000-0001-8069-9410
+    - name: Sanmi Koyejo
+      orcid: 0000-0002-4023-419X
+  date: last-modified
+  # doi: 10.25936/3jp6-5m50
+  repo-url: https://github.com/sangttruong/mlhp
+  repo-actions: [source, issue]
+  downloads: [pdf]
+  sidebar:
+    style: "docked"
+    footer: license.qmd
+  # google-analytics:
+  # cookie-consent: true
+  chapters:
+    - index.qmd
+    - src/002-reward_model.qmd
+    - src/003-measure.qmd
+    - src/004-optim.qmd
+    - src/005-align.qmd
+    - src/006-conclusion.qmd
