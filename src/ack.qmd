@@ -9,6 +9,7 @@ Initial versions of this book were compiled as lecture notes to the class CS329H
 Thanks for reading our book! We hope you find this book useful in your research and teaching.
 
 ::: {#quarto-appendix .default}
+
 BibTeX citation:
 <pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@book{mlhp,
   author    = {Truong, Sang and Haupt, Andreas and Koyejo, Sanmi},
@@ -23,6 +24,7 @@ For attribution, please cite this work as:
 <div id="ref-mlhp" class="csl-entry quarto-appendix-citeas">
   S. Truong, A. Haupt, and S. Koyejo. 2025. Machine Learning from Human Preferences. Stanford University.
 </div>
+
 :::
 
 :::

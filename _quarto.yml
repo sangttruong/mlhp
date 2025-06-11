@@ -24,7 +24,6 @@ language:
 
 df-print: kable
 filters:
-  - boxes
   - pseudocode
 
 format:
@@ -113,6 +112,11 @@ execute:
   cache: true
   highlight-style: github
   tidy: true
+  engine: pyodide
+  pyodide:
+    show-startup-message: false
+    auto: true
+    packages: [numpy, matplotlib, torch, botorch, tueplots, jupyter, jupyter-cache]
 
 book:
   title: "Machine Learning from Human Preferences"
@@ -126,8 +130,7 @@ book:
       orcid: 0000-0002-4023-419X
     
   date: last-modified
-  # doi: 10.25936/3jp6-5m50
-  repo-url: https://github.com/sangttruong/mlhp
+  repo-url: https://github.com/stair-lab/mlhp
   repo-actions: [source, issue]
   downloads: [pdf]
   sidebar:
@@ -145,7 +148,3 @@ book:
     - src/chap7.qmd
     - src/chap8.qmd
     - src/ack.qmd
-
-# Set default options for every webpage that may or may not include Pyodide.
-pyodide: 
-  show-startup-message: false     # Display status of Pyodide initialization
