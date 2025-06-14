@@ -1034,5 +1034,3 @@ representation learning for remarkably adaptable and nuanced robotic
 task performance. These models represent significant leaps in robotics
 while opening new frontiers for future research and applications.
 
-
-{{< include psets/pset2.qmd >}}
