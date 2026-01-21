@@ -4,13 +4,16 @@
 .RData
 .Ruserdata
 
-# OS
+.vscode
+.Rbuildignore
+
 .DS_Store
 
 # Quarto build outputs
 _book/
 _freeze/
 _site/
+_slides/
 /.quarto/
 *_cache/
 
@@ -35,11 +38,36 @@ venv/
 images/management/analysis_pipeline.pptx
 images/management/analysis_pipeline.pdf
 *.xls
+*.html
+*.docx
+/_site/
+*_files/
+/.quarto/
+/_book/
+/_extensions/
+/_freeze/
 
 # LaTeX intermediates
 *.blg
 *.log
 *.toc
 *.aux
-# *.tex
-# *.pdf
+*.tex
+*.pdf
+*.idx
+*.ilg
+*.ind
+*.lock
+*.ipynb
+
+/src/.jupyter_cache
+
+/.quarto/
+
+**/*.quarto_ipynb
+
+# Claude Code config
+CLAUDE.md
+.claude/
+.claude.json
+.claude.json.backup

@@ -1,0 +1,55 @@
+.reveal {
+  font-family: 'Latin Modern Roman', 'Computer Modern Serif', serif;
+}
+
+/* Citation styling for references */
+.reveal .citation {
+  font-size: 0.5em;
+  text-align: left;
+  color: #666;
+  margin-top: 1em;
+}
+
+.reveal .citation p {
+  margin: 0.2em 0;
+}
+
+/* Centered citation variant */
+.reveal .citation-center {
+  font-size: 0.5em;
+  text-align: center;
+  color: #666;
+  margin-top: 1em;
+}
+
+/* Small text utility */
+.reveal .small {
+  font-size: 0.6em;
+}
+
+.reveal .smaller {
+  font-size: 0.5em;
+}
+
+/* Image caption styling */
+.reveal figcaption {
+  font-size: 0.5em;
+  color: #666;
+  text-align: center;
+}
+
+/* Two-column layout improvements */
+.reveal .columns {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Title slide styling */
+.reveal .title-slide h1 {
+  font-size: 1.8em;
+}
+
+.reveal .title-slide h2 {
+  font-size: 1.2em;
+  color: #666;
+}
