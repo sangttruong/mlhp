@@ -11,11 +11,6 @@ local boxes = {
 	[ 'exercises'              ] = {color = '.yellow',  icon = '\\faPenRuler',            collapse = true},
 	[ 'discussion questions'   ] = {color = '.cyan',    icon = '\\faComments',            collapse = true},
 	[ 'readings'               ] = {color = '.magenta', icon = '\\faBook',                collapse = true},
-	[ 'proposition'            ] = {color = '.orange',  icon = '\\faPenSquare',           collapse = false},
-	[ 'definition'             ] = {color = '.blue',    icon = '\\faPenSquare',           collapse = false},
-	[ 'theorem'                ] = {color = '.red',     icon = '\\faPenSquare',           collapse = false},
-	[ 'lemma'                  ] = {color = '.orange',  icon = '\\faPenSquare',           collapse = false},
-	[ 'remark'                 ] = {color = '.green',   icon = '\\faQuestion',            collapse = false},
 }
 
 -- TODO: shrink learning goals boxes
@@ -25,8 +20,7 @@ local boxes = {
 
 -- generate tcolorbox options for a given box title
 local function boxOpts(title)
-  --local color = boxes[title]['color']
-  local color = '.grey'
+  local color = boxes[title]['color']
   local icon = boxes[title]['icon']
   local Title = title:gsub("^%l", string.upper)
   local opts = 'colframe=' .. color .. ', title=' .. icon .. ' \\enspace ' .. Title
@@ -37,11 +31,6 @@ end
 local function wrapEnv(el, env, opts)
   local beginEnv = pandoc.RawInline('latex', '\\begin{' .. env .. '}[' .. opts .. ']\n')
   local endEnv = pandoc.RawInline('latex', '\\end{' .. env .. '}\n')
-  
-  if pandoc.utils.type(el) == 'Block' then
-    return {beginEnv, el, endEnv}
-  end
-  
   table.insert(el, 1, beginEnv)
   table.insert(el, endEnv)
   return el

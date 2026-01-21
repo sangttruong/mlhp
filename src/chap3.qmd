@@ -9,79 +9,82 @@ execute:
     auto: true
 ---
 
-Designing a good reward signal by hand for a complex AI system is difficult and error-prone. Instead of manually specifying desirable behavior, we can learn a utility signal from preference data. In this chapter, we explore how to infer an underlying utility from various forms of feedback. Throughout, we include mathematical formulations and code examples to illustrate the learning process.
+::: {.callout-note}
+## Intended Learning Outcomes
 
-## Data Generating Process: A Latent Variable Perspective
-Before introducing models for preference data, it is useful to begin with some stylized empirical observations. For example, surveys indicate that only a small fraction of the US population report liking durian, while a much larger fraction endorse liking banana or strawberry. Some people appear to have a general fondness for fruit, while others are relatively indifferent or even averse. Interestingly, even within fruit-likers, there is heterogeneity: some prefer durian over banana, while others show the opposite ordering. These facts suggest several latent forces at work (appetites, baseline appeal, trait heterogeneity) that any plausible data-generating process (DGP) for preference must accommodate. Below we propose one such DGP as a conceptual scaffold for understanding the observed patterns.
+By the end of this chapter you will be able to:
 
-We denote $Y_{i,j}$ to be the response of user $i$ to item $j$, which is drawn from a collection of $M$ items. The response is $1$ if the user likes the item and zero otherwise. The Rasch model posits that response is a Bernoulli random variable governed by user's appetite $U_i \in \mathbb{R}$ and item's appeal $V_j \in \mathbb{R}$: 
-
-$$
-p(Y_{i,j} = 1 | U_i, V_j) = \sigma(H_{i,j}), \quad H_{ij} = U_i + V_j
-$$
-where $\sigma$ is the logistic function. The user appetite is a latent variable represents the appetite construct, which is the tendency of the user to like items in the collection in general, and the item appeal is how easy it is for the item to be like by the population of users.
-
-The user can express their affinity via several mechanisms. For example: thumbs-up/down on an e-commerce site, swiping on a dating site, or skipping a track on a music app. User- and item-specific parameters do not need to be unidimensional. When appetide and appeal are $K$ dimensional, the data generating process is
-$$
-p(Y_{i,j} = 1 | U_i, V_j, Z_j) = \sigma(H_{i,j}), \quad H_{ij} = d(U_i, V_j + Z_j),
-$$
-where $d$ is some distance function in the $K$ dimensional space, $U_i$ is the user-specific appetide for each dimension, $V_j$ is the item loading, and $Z_j$ is the offset. When $d$ is the negative Euclidean distance, the model is know as the Ideal Point Model, which is popular in political sciences and psychometrics:
-$$
-H_{ij} = -||U_i -  V_j ||_2 + Z_j
-$$
-In this case, $U_i$ is the user embedding and $V_j$ is the item embedding with some scalar offset $Z_j$. When the distance function is the dot product, the above generating process is known as the logistic factor model, a popular class of model in psychometrics:
-$$
-H_{ij} = U_i^\top V_j + Z_j
-$$
-
-Each of the $K$ dimension represents different property of the items. For example, when $K=2$, a fruit might be sweet and have a strong aroma, and some users might look for sweetness, while others who might avoid sugar and look for strong aroma.
-
-In many case, the user might be asked to express their preference in term of comparison between two item $j$ and $j'$, in which the response $Y_{i,jj'}$ is one if the item $i$ is preferred and zero otherwise. 
-$$
-p(Y_{i,jj'} = 1 | i, j, j') = \sigma(H_{i,j} - H_{i,j'}) = \frac{\exp(H_{ij})}{\exp(H_{ij}) + \exp(H_{ij'})},
-$$
-where the last equality uses the logistic identity. This is also known in the literature as the Bradley-Terry model. For a single user, if the generating process for item-wise preference is Rasch, we can further simplify $H_{i,j} - H_{i,j'} = U_i + V_j - U_i - V_{j'} = V_j - V_{j'}$. Hence, for a single user, the logit does not depend on the user-specific appetide, but only on the item parameters. This is generally not true for other classes of model.
-
-In the item-wise preference, the responses for $N$ user and $M$ items is a 2D matrix with shape $N \times M$, while in the pairwise preference, the responses for the same number of users and items is a 3D tensor with shape $N \times M \times M$. 
-
-Given a data generating process, we can synthesize some data. The code below is for generate a response matrix for Rasch response: 
-
-::: {.callout-note title="Code"}
-
-```{pyodide-python}
-import numpy as np
-import matplotlib.pyplot as plt
-
-plt.rcParams.update({
-    "font.size": 14,
-    "axes.labelsize": 16,
-    "xtick.labelsize": 14,
-    "ytick.labelsize": 14,
-    "legend.fontsize": 14,
-    "axes.titlesize": 16,
-    "figure.figsize": (6, 6),
-    "figure.autolayout": True,
-})
-rng = np.random.default_rng(2601)
-
-N = 50 # users
-M = 30 # items
-U = rng.normal(loc=0.0, scale=1, size=N) # users' appetites
-V = rng.normal(loc=0.0, scale=1, size=M) # items' appeals
-P = 1.0 / (1.0 + np.exp(-(U[:, None] + V[None, :])))
-Y = (rng.random(size=(N, M)) < P)
-Y = Y[np.argsort(Y.mean(axis=1))][:, np.argsort(Y.mean(axis=0))]
-
-plt.imshow(Y, cmap='coolwarm')
-plt.title("Rasch Responses")
-plt.xlabel("Items")
-plt.ylabel("Users")
-plt.show()
-```
-
+- **Identify** appropriate train/test splitting strategies for preference data and understand their implications for model evaluation.
+- **Implement** maximum likelihood estimation via gradient descent for the Bradley-Terry model, deriving and computing gradients efficiently.
+- **Apply** Bayesian inference using Markov Chain Monte Carlo (MCMC) to quantify parameter uncertainty and obtain posterior distributions.
+- **Derive** online learning algorithms (Elo ratings) as stochastic gradient ascent and explain when online methods are preferred over batch learning.
+- **Compare** batch maximum likelihood, Bayesian inference, and online learning approaches in terms of computational cost, statistical efficiency, and practical applicability.
+- **Evaluate** learned preference models using multiple metrics including AUC, log-likelihood, and calibration error.
+- **Apply** regularization techniques (L2 penalty, early stopping) to prevent overfitting and improve generalization.
+- **Conduct** k-fold cross-validation for model selection and hyperparameter tuning in preference learning settings.
+- **Implement** modern optimization methods (Adam, learning rate schedules) and diagnose convergence through loss curves and gradient norms.
+- **Analyze** real-world preference data from language model alignment, addressing practical challenges such as noise, sparsity, and cold-start problems.
 :::
 
-```{python}
+::: {.callout-tip title="Suggested Lecture Plan" collapse="true"}
+This chapter can be covered in two 50-minute lectures plus a hands-on lab session:
+
+**Lecture 1** (Sections 3.1--3.4): Core parameter estimation methods
+
+- Train/test splitting and evaluation metrics (10 min)
+- Maximum likelihood estimation for Bradley-Terry: derivation, implementation, evaluation (20 min)
+- Bayesian inference with MCMC: posterior distributions, Metropolis-Hastings (15 min)
+- Comparison of MLE vs Bayesian approaches (5 min)
+
+**Lecture 2** (Sections 3.5--3.8): Advanced learning topics
+
+- Online learning with Elo ratings: derivation as SGD, applications (15 min)
+- Regularization and overfitting: L2 penalty, validation curves (15 min)
+- Cross-validation and model selection (10 min)
+- Optimization methods: GD vs Adam, learning rate schedules (10 min)
+
+**Lab session**: Real-world application and exercises
+
+- Apply methods to LLM preference data (30 min)
+- Work on selected exercises (20 min)
+:::
+
+Designing a good reward signal by hand for a complex AI system is difficult and error-prone. Instead of manually specifying desirable behavior, we can learn a utility signal from preference data. In this chapter, we explore how to infer an underlying utility from various forms of feedback. Throughout, we include mathematical formulations and code examples to illustrate the learning process.
+
+## Chapter Overview
+
+@sec-latent-variable in Chapter 2 established the foundational models for preference data: the Rasch model for item-wise responses, the Bradley-Terry model for pairwise comparisons, and K-dimensional factor models for richer representations. We saw how these models formalize the relationship between latent parameters and observed choices.
+
+This chapter addresses the central question of **learning**: given observed preference data, how do we estimate the parameters of these models? We explore three complementary perspectives on parameter learning, each with distinct advantages:
+
+- **Maximum Likelihood Estimation** (@sec-mle): Find parameters that maximize the probability of observed data. Fast and scalable, but provides only point estimates.
+- **Bayesian Inference** (@sec-bayesian): Treat parameters as random variables with prior distributions. Quantifies uncertainty but requires more computation.
+- **Online Learning** (@sec-online): Update estimates incrementally as new data arrives. Essential for dynamic systems with continuously arriving feedback.
+
+Beyond these core methods, we cover essential machine learning techniques for practical applications:
+
+- **Regularization** (@sec-regularization): Prevent overfitting through L2 penalties and early stopping.
+- **Model Selection** (@sec-model-selection): Use cross-validation to tune hyperparameters and compare approaches.
+- **Optimization** (@sec-optimization): Improve convergence with modern methods like Adam and adaptive learning rates.
+- **Real-World Application** (@sec-real-world): Apply all methods to language model preference data, confronting practical challenges.
+
+Chapters 4-6 will build on these learning foundations to address active data collection (Chapter 4), decision-making under learned preferences (Chapter 5), and heterogeneous populations (Chapter 6).
+
+## Learning from Preference Data
+
+@sec-latent-variable introduced the latent variable models for preference data: the Rasch model for item-wise responses, K-dimensional factor models (including the logistic factor model and the ideal point model), and the Bradley-Terry model for pairwise comparisons. We saw how these models relate user parameters $U_i$ and item parameters $V_j$ to observed responses, and how pairwise models can be derived from item-wise models.
+
+This chapter focuses on *learning* the parameters of these models from observed data. We cover three complementary approaches:
+
+1. **Maximum Likelihood Estimation** for Bradley-Terry and Rasch models — finding parameters that maximize the probability of the observed data
+2. **Bayesian Inference** for uncertainty quantification — treating parameters as random variables with prior distributions
+3. **Online Learning** with the Elo rating system — updating parameter estimates incrementally as new data arrives
+
+We begin by discussing how to split preference data into training and test sets, then develop estimation procedures for each approach.
+
+```{pyodide-python}
+#| autorun: true
+#| echo: false
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -101,99 +104,16 @@ N = 50 # users
 M = 30 # items
 U = rng.normal(loc=0.0, scale=1, size=N) # users' appetites
 V = rng.normal(loc=0.0, scale=1, size=M) # items' appeals
-P = 1.0 / (1.0 + np.exp(-(U[:, None] + V[None, :])))
-Y = (rng.random(size=(N, M)) < P)
-Y = Y[np.argsort(Y.mean(axis=1))][:, np.argsort(Y.mean(axis=0))]
-
-plt.imshow(Y, cmap='coolwarm')
-plt.title("Rasch Responses")
-plt.xlabel("Items")
-plt.ylabel("Users")
-plt.show()
 ```
 
-Taken a user and the item-wise generating process is Rasch, we generate their Bradley-Terry response below.
+## Maximum Likelihood Estimation {#sec-mle}
 
-```{python}
-P = 1.0 / (1.0 + np.exp(-(V[:, None] - V[None, :])))
-Y_BT = np.full((M, M), np.nan)
-triu_idx = np.triu_indices(M, k=1)
-randu = rng.random(size=triu_idx[0].shape[0])
-wins_j_over_k = (randu < P[triu_idx])  # 1 if j beats k
-Y_BT[triu_idx] = wins_j_over_k
-Y_BT[(triu_idx[1], triu_idx[0])] = 1.0 - wins_j_over_k
-order = np.argsort(np.nanmean(Y_BT, axis=1))
-Y_BT = Y_BT[order][:, order]
+Given a response from a particular generating process, there are various standard statistical inference procedures, such as maximum likelihood, maximum marginal likelihood, or Bayesian inference. These procedures are designed to infer parameters that are generalizable to new datasets. Hence, we discuss the training and testing dataset next. 
 
-im0 = plt.imshow(Y_BT, cmap='coolwarm')
-plt.title("Bradley-Terry Response")
-plt.xlabel("Items")
-plt.ylabel("Items")
-plt.show()
-```
+The simplest train/test splitting is random, where we select a random subset (e.g., 80%) of the response matrix to be in the training set, and the rest in the test set. We can demonstrate, for example, with the Bradley-Terry response with 80% training and 20% testing data:
 
-Remember, the Bradley-Terry response above is just for a single user. To work with $N$ user, we need to obtain the $N \times M \times M$ tensor. To see heterogeneity, we need to simulate data under the K-dimensional factor model. The Rasch model does not have this effect since the response of each user does not depend on the user appetide.
-
-```{python}
-from matplotlib.colors import ListedColormap
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
-
-K = 3 # latent dimensions
-rng = np.random.default_rng(13)
-U = rng.normal(0, 1.0, size=(N, K))             # user embeddings
-V = rng.normal(0, 1.0, size=(M, K))             # item embeddings
-Z = rng.normal(0, 1, size=(M,))               # item offsets
-H = U @ V.T + Z[None, :]
-H_expanded_j = H[:, :, None]       # (N, M, 1)
-H_expanded_k = H[:, None, :]       # (N, 1, M)
-diff = H_expanded_j - H_expanded_k # (N, M, M)
-P_pair = 1.0 / (1.0 + np.exp(-diff))
-
-# Mask diagonals (j == k)
-for i in range(N):
-    np.fill_diagonal(P_pair[i], np.nan)
-randu = rng.random(size=P_pair.shape)
-Y_pair = (randu < np.nan_to_num(P_pair, nan=0.0)).astype(int)
-# Force antisymmetry: Y[i,j,k] = 1 - Y[i,k,j], ignore diagonal
-for i in range(N):
-    for j in range(M):
-        Y_pair[i, j, j] = 0
-        for k in range(j+1, M):
-            Y_pair[i, k, j] = 1 - Y_pair[i, j, k]
-# Mask lower triangle (keep j>k) to avoid duplicates
-tri_mask = np.triu(np.ones((M, M), dtype=bool), k=1)
-volume = np.zeros_like(Y_pair, dtype=bool)
-volume[:, :, :] = tri_mask[None, :, :]
-
-# We'll assign colors based on Y_pair, but only keep voxels where tri_mask is True
-values = np.where(volume, Y_pair, -1)  # -1 means no voxel
-red = np.array([1.0, 0.0, 0.0, 0.95])
-blue = np.array([0.0, 0.0, 1.0, 0.95])
-transparent = np.array([0, 0, 0, 0.0])
-
-facecolors = np.empty(values.shape + (4,))
-facecolors[:] = transparent
-facecolors[values == 1] = red
-facecolors[values == 0] = blue
-
-fig = plt.figure(figsize=(6, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.voxels(values != -1, facecolors=facecolors, edgecolor='k', linewidth=0.2)
-
-ax.set_xlabel("Users")
-ax.set_ylabel("Item")
-ax.set_zlabel("Item")
-ax.set_xticks(np.arange(0, N, max(1, N // 5)))
-ax.set_yticks(np.arange(0, M, max(1, M // 5)))
-ax.set_zticks(np.arange(0, M, max(1, M // 5)))
-```
-
-## Parameter Learning via Full Information Maximum Likelihood Estimation
-Given a response from a particular generating process, there are various standard statistical inference procedure, such as maximum likelihood, maximum marginal likelihood, or Bayesian inference. These procedure is designed to infer parameters that are generalizable to new datasets. Hence, we discuss the training and testing dataset next. 
-
-The simplest train/test splitting is random, where we select random element of the response matrix to be in the training set, and the rest in the test set. We can demonstrate, for example, with the Bradley-Terry response with a 80% training and 20% testing data:
-
-```{python}
+```{pyodide-python}
+#| autorun: true
 V = rng.normal(loc=0.0, scale=1, size=M)
 diff = V[:, None] - V[None, :]
 P = 1.0 / (1.0 + np.exp(-diff))
@@ -251,14 +171,14 @@ plt.colorbar(im2, fraction=0.046, pad=0.04)
 plt.show()
 ```
 
-Having the train and test datasets from the Bradley-Terry response, which is denoted as $\mathcal{D}_{\text{train}}$ and $\mathcal{D}_{\text{test}}$, we first demonstrate the parameter learning with full information maximum likelihood estimation:
+Having the train and test datasets from the Bradley–Terry response, which are denoted as $\mathcal{D}_{\text{train}}$ and $\mathcal{D}_{\text{test}}$, we first demonstrate the parameter learning with full information maximum likelihood estimation on a single user:
 
 $$
-\hat{V} = \arg\max_{V} \sum_{j,j' \in \mathcal{D}_{\text{train}}} \log p(Y_{0,jj'} | P_{0,jj'}), \quad P_{0, jj'} = V 1_M^\top - 1_M V^\top,
+\hat{V} = \arg\max_{V} \sum_{j,j' \in \mathcal{D}_{\text{train}}} \log p(Y_{0,jj'} | \sigma(H_{0,jj'})), \quad H_{0} = V 1_M^\top - 1_M V^\top,
 $$
-where $1_M$ is a column vector of 1 with length $M$. The optimization can be carried out with standard optimizers, such as gradient descent.
+where $1_M$ is a column vector of 1 with length $M$ and $H_{0,jj'} = v_j-v_{j'}$ for a fixed user $0$. The optimization can be carried out with standard optimizers, such as gradient descent.
 
-Let $\mathcal{N}^+_{m={(m,k) \in \mathcal D*{\text{train}}}}$ be pairs recorded in the order $(m,k)$. Let $\mathcal{N}^-_{m={(k,m)\in\mathcal D*{\text{train}}}}$ be pairs recorded in the order $(k,m)$. Define residuals $r_{mk} = y_{mk} - \sigma(V_m - V_k)$ and $r_{km} = y_{km} - \sigma(V_k-V_m)$. Then
+Let $\mathcal{N}_m^+ = \{(m,k) \in \mathcal{D}_{\text{train}}\}$ be pairs recorded in the order $(m,k)$. Let $\mathcal{N}_m^- = \{(k,m) \in \mathcal{D}_{\text{train}}\}$ be pairs recorded in the order $(k,m)$. Define residuals $r_{mk} = y_{mk} - \sigma(V_m - V_k)$ and $r_{km} = y_{km} - \sigma(V_k-V_m)$. Then
 
 $$
 \frac{\partial \ell}{\partial V_m} 
@@ -266,9 +186,10 @@ $$
 - \sum_{(k,m)\in \mathcal{N}^-_m} r_{km}.
 $$
 
-This shows the contribution of data about $m$ only. Each comparison with opponent $k$ adds a term equal to the observed-minus-predicted win indicator, with a plus sign if $m$ is listed first and a minus sign if $m$ is listed second. Intuition. If $m$ beats $k$ more often than the model predicts, the residual is positive and the gradient pushes $V_m$ up. If $m$ loses to $k$ more than predicted, the residual is negative and the gradient pushes $V_m$ down.
+This shows the contribution of data about $m$ only. Each comparison with opponent $k$ adds a term equal to the observed-minus-predicted win indicator, with a plus sign if $m$ is listed first and a minus sign if $m$ is listed second. Intuitively, if $m$ beats $k$ more often than the model predicts, the residual is positive and the gradient pushes $V_m$ up. If $m$ loses to $k$ more than predicted, the residual is negative and the gradient pushes $V_m$ down.
 
-```{python}
+```{pyodide-python}
+#| autorun: true
 def auc_from_scores(scores, labels):
     pos = scores[labels == 1]
     neg = scores[labels == 0]
@@ -325,7 +246,8 @@ plt.show()
 
 In this synthetic setting, one way to interpret the result is to compare with the Bayes optimal AUC. Here we quantify an upper bound on achievable test AUC under the assumed data-generating process. For each test pair $(j,k)$ we know the ground-truth win probability $P_{jk}=\sigma(V_j-V_k)$ from the simulator. The Bayes-optimal score for that pair is exactly this probability, $s^*_{jk}=P_{jk}$. Any classifier that ranks pairs by $s^*$ maximizes AUC in expectation because it orders pairs by their true success probabilities. To estimate the corresponding Bayes AUC on our finite test set, we keep the same index set of pairs and repeatedly resample binary labels $Y_{jk} \sim \mathrm{Bern}(P_{jk})$, then compute $\mathrm{AUC}(s^*, Y)$ on each resample using a tie-aware definition. The mean of these Monte Carlo AUCs is the Bayes-optimal test AUC, and the empirical quantiles give a sampling range induced purely by label noise. For comparison, we compute the model’s AUC by replacing $s^*_{jk}$ with the learned scores $s^{*\text{model}}_{jk}=\sigma(\hat V_j-\hat V_k)$. The gap between the two summarizes how far the fitted model is from the oracle ranking implied by the true $P^*_{jk}$ on the exact same test pairs.
 
-```{python}
+```{pyodide-python}
+#| autorun: true
 def collect_pairs(Y):
     r, c = np.where(~np.isnan(Y))
     upper = r < c
@@ -358,9 +280,10 @@ print(f"Mean AUC over resamples. Bayes: {np.mean(bayes_list):.4f}. Model: {np.me
 print(f"5–95% range Bayes: {np.percentile(bayes_list,[5,95])}. Model: {np.percentile(model_list,[5,95])}.")
 ```
 
-The result shows that the inference has found a good solution compare to the Bayes optimal estimator! A additional, natural test is to see if the estimated parameters match the true ones. Since the likelihood function only pays attention of the difference of item appeal for any pair, the appeal is only identifiable up to a shift and scale transform. The standard practice is to center and whiten the solution.
+The result shows that the inference has found a good solution compared to the Bayes optimal estimator! An additional, natural test is to see if the estimated parameters match the true ones. Since the likelihood function only pays attention to the difference of item appeal for any pair, the appeal is only identifiable up to a shift and scale transform. The standard practice is to center and whiten the solution.
 
-```{python}
+```{pyodide-python}
+#| autorun: true
 # Center and whiten V_hat (zero mean, unit variance)
 V_hat_norm = (V_hat - V_hat.mean()) / (V_hat.std() + 1e-12)
 
@@ -387,7 +310,8 @@ mse = np.mean((V - V_hat_aligned) ** 2)
 print(f"After center and whiten: Corr {corr:.4f}, MSE: {mse:.6f}")
 ```
 
-## Parameter Learning via Bayesian Inference
+## Bayesian Inference {#sec-bayesian}
+
 A Bayesian approach provides a natural alternative to maximum likelihood for parameter estimation in the Bradley–Terry model. Instead of finding a single point estimate for the item parameters (V), we place a prior distribution on them (e.g., independent standard normals) and update this prior using the Bernoulli likelihood from the observed comparisons. This yields a posterior distribution over (V), which captures both central estimates and the uncertainty around them. In practice, this posterior cannot be computed in closed form, so we turn to approximate inference. One common method is Markov chain Monte Carlo (MCMC), which constructs a sequence of samples that, in the limit, follow the posterior distribution.
 
 In particular, the Metropolis–Hastings (MH) algorithm is straightforward to apply: at each step, we propose a new value for one or more coordinates of (V) (e.g., from a Gaussian centered at the current state), compute the acceptance ratio as the ratio of posterior densities between the proposed and current states, and accept the proposal with that probability. Repeating this process produces a chain of samples that can be used to approximate posterior means, variances, or other functionals of interest. This approach not only yields point predictions but also quantifies uncertainty about the relative strengths of items under the Bradley–Terry model.
@@ -401,15 +325,16 @@ $$
 The denominator is the marginal likelihood (evidence), which is intractable in closed form, so we resort to MCMC (e.g., MH) to sample from the posterior. Suppose we are at current (parameter) state $V^{(t)}$. We propose a new state $V'$ from a proposal distribution, such as Gaussian: $q(V' \mid V^{(t)}) = \mathcal N (V'; V^{(t)}, \tau^2 I),$ where $\tau^2$ is a step-size variance. This proposal is symmetric, meaning $q(V' \mid V^{(t)}) = q(V^{(t)} \mid V').$ For any proposal distribution $q(V' \mid V^{(t)})$, the Metropolis–Hastings acceptance probability is
 
 $$
-\alpha = \min \{ {1; \frac{p(V' \mid \mathcal D), q(V^{(t)} \mid V')}{p(V^{(t)} \mid \mathcal D), q(V' \mid V^{(t)})}} \}.
+\alpha = \min \left\{1, \frac{p(V' \mid \mathcal D) \cdot q(V^{(t)} \mid V')}{p(V^{(t)} \mid \mathcal D) \cdot q(V' \mid V^{(t)})}\right\}.
 $$
 
 This says: accept the proposal with probability proportional to how much more plausible it is under the posterior, adjusted by how easy it is to propose back. If we choose a Gaussian proposal, the proposal terms cancel out in the ratio due to symmetry. So the acceptance rule simplifies to
 $$
-\alpha = \min \{1, \frac{p(V' \mid \mathcal D)}{p(V^{(t)} \mid \mathcal D)} \} = \min \{1, \frac{p(\mathcal D \mid V'), p(V')}{p(\mathcal D \mid V^{(t)}), p(V^{(t)})} \}.
+\alpha = \min \left\{1, \frac{p(V' \mid \mathcal D)}{p(V^{(t)} \mid \mathcal D)}\right\} = \min \left\{1, \frac{p(\mathcal D \mid V') \cdot p(V')}{p(\mathcal D \mid V^{(t)}) \cdot p(V^{(t)})}\right\}.
 $$
 
-```{python}
+```{pyodide-python}
+#| autorun: true
 def logpost(v, r_idx, c_idx, y_obs, prior_var=1.0):
     s = v[r_idx] - v[c_idx]
     # Stable log-sigmoid pieces
@@ -463,12 +388,13 @@ axes[1].set_title("Posterior of v[0]")
 plt.show()
 ```
 
-## Online Parameter Learning with Elo Rule
+## Online Learning with Elo Ratings {#sec-online}
+
 In many applications, comparisons between items arrive sequentially over time rather than being observed all at once. For example, players in online games are continuously matched, or recommendation systems log one user preference at a time. In such settings, it is often computationally infeasible to refit the full Bradley–Terry model by maximum likelihood or MCMC after each new observation. Instead, we want an online update rule that adjusts item strengths incrementally as new outcomes arrive.
 
 This is precisely the motivation behind the **Elo rating system**, originally introduced for ranking chess players and later widely adopted in competitive games, online platforms, and even information retrieval. The key idea is to maintain a current estimate of each item's (or player's) latent strength, and update only the two items involved in a match when a new result comes in.
 
-The Elo rule can be derived as a stochastic gradient ascent method on the Bradley–Terry log-likelihood. Suppose item (j) plays against item (j'). Given the current parameters, the log-likelihood gradient with respect to $V_j$ and $V_{j'}$ is
+The Elo rule can be derived as a stochastic gradient ascent method on the Bradley–Terry log-likelihood. Suppose item $j$ plays against item $j'$. Given the current parameters, the log-likelihood gradient with respect to $V_j$ and $V_{j'}$ is
 $$
 \frac{\partial \ell}{\partial V_j} = (y - p), \qquad
 \frac{\partial \ell}{\partial V_{j'}} = -(y - p).
@@ -479,9 +405,10 @@ $$
   V_j \leftarrow V_j + \eta (y - p), \qquad V_{j'} \leftarrow V_{j'} - \eta (y - p).
 $$
 
-This is exactly the Elo update rule. The learning rate $\eta$ is often called the **K-factor** in Elo literature. If $y=1$ (item j wins) but the model predicted a low (p), then (y - p) is positive and (V_j) increases, (V_{j'}) decreases — the system learns that (j) is stronger than previously believed If $y=0$ (item j' wins), the opposite adjustment happens. The magnitude of the update is larger when the outcome is surprising (large prediction error), and smaller when the outcome is expected (small prediction error). Thus, Elo is an online learning algorithm for the Bradley–Terry model, interpretable as stochastic gradient ascent with a fixed step size.
+This is exactly the Elo update rule. The learning rate $\eta$ is often called the **K-factor** in Elo literature. If $y=1$ (item $j$ wins) but the model predicted a low $p$, then $(y - p)$ is positive and $V_j$ increases, $V_{j'}$ decreases — the system learns that $j$ is stronger than previously believed. If $y=0$ (item $j'$ wins), the opposite adjustment happens. The magnitude of the update is larger when the outcome is surprising (large prediction error), and smaller when the outcome is expected (small prediction error). Thus, Elo is an online learning algorithm for the Bradley–Terry model, interpretable as stochastic gradient ascent with a fixed step size.
 
-```{python}
+```{pyodide-python}
+#| autorun: true
 # Build a stream of observed pairs for the single user from Y_BT upper triangle
 pairs_stream = list(zip(triu_r, triu_c))
 labels_stream = Y_BT[triu_r, triu_c].astype(float)
@@ -510,3 +437,811 @@ for (j, k), y in zip(pairs_stream, labels_stream):
 p_te_elo = 1.0 / (1.0 + np.exp(-(r[r_te] - r[c_te])))
 auc_elo = auc_from_scores(p_te_elo, y_te)
 ```
+
+## Regularization and Overfitting {#sec-regularization}
+
+The maximum likelihood estimator maximizes fit to observed training data but may overfit, especially when the number of parameters is large relative to the amount of data. In preference learning, overfitting manifests as learned item parameters that capture noise in the training comparisons rather than true relative strengths. Regularization techniques penalize model complexity to improve generalization to held-out test data.
+
+### L2 Regularization
+
+The most common regularization approach adds an L2 penalty term to the log-likelihood. For the Bradley-Terry model, the regularized objective becomes:
+$$
+\mathcal{L}_{\text{reg}}(V) = \sum_{(j,j') \in \mathcal{D}_{\text{train}}} \log p(Y_{jj'} \mid V_j - V_{j'}) - \frac{\lambda}{2} \|V\|_2^2
+$$
+where $\lambda \geq 0$ is the **regularization strength**. The penalty $\frac{\lambda}{2} \|V\|_2^2 = \frac{\lambda}{2} \sum_{j=1}^M V_j^2$ discourages large parameter values. When $\lambda = 0$, we recover standard MLE. As $\lambda$ increases, parameters shrink toward zero.
+
+The regularized gradient adds a simple term to the MLE gradient:
+$$
+\frac{\partial \mathcal{L}_{\text{reg}}}{\partial V_m} = \sum_{(m,k)\in \mathcal{N}^+_m} r_{mk} - \sum_{(k,m)\in \mathcal{N}^-_m} r_{km} - \lambda V_m
+$$
+
+Intuitively, regularization creates a bias-variance tradeoff: small $\lambda$ permits complex fits (low bias, high variance), while large $\lambda$ enforces simpler models (high bias, low variance). The optimal $\lambda$ balances these to minimize test error.
+
+::: {.callout-note title="Connection to Bayesian Inference"}
+L2 regularization corresponds exactly to maximum a posteriori (MAP) estimation with a Gaussian prior $p(V_j) = \mathcal{N}(0, 1/\lambda)$. The regularization strength $\lambda$ is the inverse prior variance: strong regularization (large $\lambda$) means a tight prior belief that parameters are near zero.
+:::
+
+```{pyodide-python}
+#| autorun: true
+# Compare unregularized vs regularized Bradley-Terry on synthetic data
+# Generate data with few items and limited comparisons to induce overfitting
+
+rng_reg = np.random.default_rng(42)
+M_small = 10  # few items
+V_true_small = rng_reg.normal(0, 1, M_small)
+
+# Generate limited training data (sparse comparisons)
+n_train_pairs = 30  # only 30 comparisons among 10 items
+train_pairs_idx = rng_reg.choice(M_small * (M_small - 1) // 2, n_train_pairs, replace=False)
+all_pairs = [(i, j) for i in range(M_small) for j in range(i+1, M_small)]
+train_pairs = [all_pairs[idx] for idx in train_pairs_idx]
+
+# Generate outcomes
+Y_train_sparse = np.full((M_small, M_small), np.nan)
+for (i, j) in train_pairs:
+    p_win = 1.0 / (1.0 + np.exp(-(V_true_small[i] - V_true_small[j])))
+    outcome = 1.0 if rng_reg.random() < p_win else 0.0
+    Y_train_sparse[i, j] = outcome
+    Y_train_sparse[j, i] = 1.0 - outcome
+
+# Generate test data (all remaining pairs)
+test_pairs = [pair for pair in all_pairs if pair not in train_pairs]
+Y_test_sparse = np.full((M_small, M_small), np.nan)
+for (i, j) in test_pairs:
+    p_win = 1.0 / (1.0 + np.exp(-(V_true_small[i] - V_true_small[j])))
+    outcome = 1.0 if rng_reg.random() < p_win else 0.0
+    Y_test_sparse[i, j] = outcome
+    Y_test_sparse[j, i] = 1.0 - outcome
+
+# Extract training and test pair indices
+r_tr_s, c_tr_s, y_tr_s = collect_pairs(Y_train_sparse)
+r_te_s, c_te_s, y_te_s = collect_pairs(Y_test_sparse)
+
+def fit_regularized_bt(r_idx, c_idx, y_obs, M, lam=0.0, lr=0.05, epochs=200):
+    """Fit Bradley-Terry with L2 regularization."""
+    V = np.zeros(M)
+    for _ in range(epochs):
+        H = V[r_idx] - V[c_idx]
+        p = 1.0 / (1.0 + np.exp(-H))
+        err = y_obs - p
+        grad = np.zeros(M)
+        np.add.at(grad, r_idx, err)
+        np.add.at(grad, c_idx, -err)
+        # Add regularization gradient
+        grad -= lam * V
+        V += lr * grad
+    return V
+
+# Fit models with different regularization strengths
+lambdas = [0.0, 0.01, 0.1, 0.5, 1.0, 5.0]
+train_aucs = []
+test_aucs = []
+
+for lam in lambdas:
+    V_fit = fit_regularized_bt(r_tr_s, c_tr_s, y_tr_s, M_small, lam=lam)
+    # Train AUC
+    s_tr = V_fit[r_tr_s] - V_fit[c_tr_s]
+    train_aucs.append(auc_from_scores(s_tr, y_tr_s))
+    # Test AUC
+    s_te = V_fit[r_te_s] - V_fit[c_te_s]
+    test_aucs.append(auc_from_scores(s_te, y_te_s))
+
+# Plot validation curve
+plt.figure(figsize=(8, 5))
+plt.semilogx(lambdas, train_aucs, 'o-', label='Train AUC', markersize=8)
+plt.semilogx(lambdas, test_aucs, 's-', label='Test AUC', markersize=8)
+plt.xlabel(r'Regularization strength $\lambda$')
+plt.ylabel('AUC')
+plt.title('Validation Curve: Regularization vs Performance')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+# Report optimal lambda
+best_idx = np.argmax(test_aucs)
+print(f"Optimal λ: {lambdas[best_idx]:.3f} (Test AUC: {test_aucs[best_idx]:.4f})")
+print(f"Unregularized (λ=0): Train AUC {train_aucs[0]:.4f}, Test AUC {test_aucs[0]:.4f}")
+```
+
+The validation curve demonstrates the regularization trade-off: at $\lambda = 0$ (no regularization), the model overfits to training data, achieving high training AUC but lower test AUC. As $\lambda$ increases, test performance improves until an optimal point, after which excessive regularization underfits. The gap between training and test AUC narrows with proper regularization, indicating better generalization.
+
+### Early Stopping
+
+An alternative to explicit regularization is **early stopping**: monitor validation performance during training and stop when it begins to degrade, even if training performance continues improving. This exploits the empirical observation that gradient descent follows a path from simple to complex models.
+
+```{pyodide-python}
+#| autorun: true
+# Demonstrate early stopping
+def fit_bt_with_validation(r_tr, c_tr, y_tr, r_val, c_val, y_val, M, lr=0.01, max_epochs=300):
+    """Fit Bradley-Terry with early stopping."""
+    V = np.zeros(M)
+    train_auc_hist = []
+    val_auc_hist = []
+
+    for epoch in range(max_epochs):
+        # Gradient step
+        H = V[r_tr] - V[c_tr]
+        p = 1.0 / (1.0 + np.exp(-H))
+        err = y_tr - p
+        grad = np.zeros(M)
+        np.add.at(grad, r_tr, err)
+        np.add.at(grad, c_tr, -err)
+        V += lr * grad
+
+        # Evaluate
+        s_tr = V[r_tr] - V[c_tr]
+        train_auc_hist.append(auc_from_scores(s_tr, y_tr))
+        s_val = V[r_val] - V[c_val]
+        val_auc_hist.append(auc_from_scores(s_val, y_val))
+
+    return V, train_auc_hist, val_auc_hist
+
+V_es, tr_hist, val_hist = fit_bt_with_validation(
+    r_tr_s, c_tr_s, y_tr_s, r_te_s, c_te_s, y_te_s, M_small
+)
+
+# Find early stopping point (best validation performance)
+best_epoch = np.argmax(val_hist)
+
+plt.figure(figsize=(8, 5))
+plt.plot(tr_hist, label='Train AUC', alpha=0.7)
+plt.plot(val_hist, label='Validation AUC', alpha=0.7)
+plt.axvline(best_epoch, color='red', linestyle='--', label=f'Best epoch: {best_epoch}')
+plt.xlabel('Epoch')
+plt.ylabel('AUC')
+plt.title('Early Stopping: Training vs Validation Performance')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print(f"Best validation AUC {val_hist[best_epoch]:.4f} at epoch {best_epoch}")
+print(f"Final epoch ({len(val_hist)-1}): Train {tr_hist[-1]:.4f}, Val {val_hist[-1]:.4f}")
+```
+
+Early stopping automatically selects model complexity through the training trajectory. Unlike L2 regularization, it requires no tuning of $\lambda$, but does require held-out validation data to monitor.
+
+::: {.callout-important title="Key Takeaway: When to Regularize"}
+Regularization is most critical when:
+
+- **Few observations** relative to parameters (e.g., 50 comparisons, 20 items)
+- **Imbalanced data**: Some items have many comparisons, others have few
+- **High noise**: Label noise or measurement error in comparisons
+
+For large datasets with many comparisons per item, overfitting is less of a concern and regularization may have minimal impact. Always use validation data or cross-validation to tune regularization strength.
+:::
+
+
+## Model Selection and Cross-Validation {#sec-model-selection}
+
+A single train/test split provides one estimate of generalization performance, but this estimate has high variance: a different random split may yield different results. **Cross-validation** (CV) systematically evaluates multiple train/test splits to obtain more reliable performance estimates and enable principled model selection.
+
+### K-Fold Cross-Validation
+
+In **k-fold cross-validation**, we partition the data into $k$ equally-sized folds. For each fold $i \in \{1, \ldots, k\}$:
+
+1. Train the model on all folds except fold $i$
+2. Evaluate on fold $i$ (held-out validation)
+3. Record the validation metric (e.g., AUC, log-likelihood)
+
+The final CV score is the average across all $k$ folds: $\text{CV}_k = \frac{1}{k} \sum_{i=1}^k \text{metric}_i$. The standard error quantifies uncertainty in the estimate.
+
+For preference data, we partition the set of observed pairwise comparisons (not items) into folds, ensuring each fold contains a representative sample of comparisons.
+
+```{pyodide-python}
+def kfold_split_pairs(r_idx, c_idx, y_obs, k=5, rng=None):
+    """Split pairwise comparison data into k folds."""
+    if rng is None:
+        rng = np.random.default_rng()
+    n_pairs = len(r_idx)
+    fold_ids = np.arange(n_pairs) % k
+    rng.shuffle(fold_ids)
+    return fold_ids
+
+def cross_validate_bt(r_idx, c_idx, y_obs, M, k=5, lam=0.0, lr=0.05, epochs=200):
+    """Perform k-fold cross-validation for Bradley-Terry model."""
+    rng_cv = np.random.default_rng(123)
+    fold_ids = kfold_split_pairs(r_idx, c_idx, y_obs, k, rng_cv)
+    
+    fold_scores = []
+    for fold in range(k):
+        # Split into train and validation
+        train_mask = fold_ids != fold
+        val_mask = fold_ids == fold
+        
+        r_tr = r_idx[train_mask]
+        c_tr = c_idx[train_mask]
+        y_tr = y_obs[train_mask]
+        
+        r_val = r_idx[val_mask]
+        c_val = c_idx[val_mask]
+        y_val = y_obs[val_mask]
+        
+        # Train model
+        V = fit_regularized_bt(r_tr, c_tr, y_tr, M, lam=lam, lr=lr, epochs=epochs)
+        
+        # Evaluate on validation fold
+        s_val = V[r_val] - V[c_val]
+        auc_val = auc_from_scores(s_val, y_val)
+        fold_scores.append(auc_val)
+    
+    return np.array(fold_scores)
+
+# Perform 5-fold CV on the synthetic dataset
+cv_scores = cross_validate_bt(r_tr_s, c_tr_s, y_tr_s, M_small, k=5, lam=0.1)
+
+print(f"5-Fold CV Scores: {cv_scores}")
+print(f"Mean CV AUC: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+```
+
+The CV estimate of {cv_scores.mean():.4f} ± {cv_scores.std():.4f} is more reliable than a single train/test split. The standard deviation quantifies variability across folds.
+
+### Hyperparameter Tuning with Cross-Validation
+
+Cross-validation enables principled hyperparameter selection: evaluate each candidate hyperparameter on CV performance and select the best. For Bradley-Terry, key hyperparameters include regularization strength $\lambda$ and learning rate.
+
+```{pyodide-python}
+# Grid search over regularization strengths using cross-validation
+lambda_grid = [0.0, 0.01, 0.05, 0.1, 0.5, 1.0]
+cv_means = []
+cv_stds = []
+
+for lam in lambda_grid:
+    scores = cross_validate_bt(r_tr_s, c_tr_s, y_tr_s, M_small, k=5, lam=lam)
+    cv_means.append(scores.mean())
+    cv_stds.append(scores.std())
+
+cv_means = np.array(cv_means)
+cv_stds = np.array(cv_stds)
+
+# Plot CV performance vs hyperparameter
+plt.figure(figsize=(8, 5))
+plt.errorbar(lambda_grid, cv_means, yerr=cv_stds, fmt='o-', capsize=5, markersize=8)
+plt.xscale('log')
+plt.xlabel(r'Regularization strength $\lambda$')
+plt.ylabel('Cross-Validation AUC')
+plt.title('Hyperparameter Tuning via 5-Fold Cross-Validation')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+best_lam_idx = np.argmax(cv_means)
+print(f"Best λ: {lambda_grid[best_lam_idx]:.3f} (CV AUC: {cv_means[best_lam_idx]:.4f} ± {cv_stds[best_lam_idx]:.4f})")
+```
+
+The error bars show the standard deviation across folds, indicating uncertainty in the CV estimate for each hyperparameter. Select the hyperparameter with highest mean CV performance.
+
+### Beyond AUC: Multiple Evaluation Metrics
+
+AUC measures ranking quality but does not capture all aspects of model performance. Additional metrics provide complementary insights:
+
+**Log-Likelihood**: Measures the probability the model assigns to observed outcomes. Higher is better.
+$$
+\text{LL} = \sum_{(j,j') \in \mathcal{D}_{\text{test}}} \left[ Y_{jj'} \log \sigma(V_j - V_{j'}) + (1 - Y_{jj'}) \log (1 - \sigma(V_j - V_{j'})) \right]
+$$
+
+**Calibration Error**: Measures whether predicted probabilities match empirical frequencies. Bin predictions into intervals (e.g., [0.0, 0.1), [0.1, 0.2), ...) and compare average predicted probability to observed frequency in each bin.
+
+```{pyodide-python}
+def compute_log_likelihood(V, r_idx, c_idx, y_obs):
+    """Compute log-likelihood on test data."""
+    s = V[r_idx] - V[c_idx]
+    p = 1.0 / (1.0 + np.exp(-s))
+    # Numerical stability: use log(p) and log(1-p) carefully
+    ll = (y_obs * np.log(p + 1e-12) + (1 - y_obs) * np.log(1 - p + 1e-12)).sum()
+    return ll
+
+def compute_calibration_error(V, r_idx, c_idx, y_obs, n_bins=10):
+    """Compute calibration error: difference between predicted prob and observed freq."""
+    s = V[r_idx] - V[c_idx]
+    p_pred = 1.0 / (1.0 + np.exp(-s))
+    
+    # Bin predictions
+    bins = np.linspace(0, 1, n_bins + 1)
+    cal_error = 0.0
+    for i in range(n_bins):
+        in_bin = (p_pred >= bins[i]) & (p_pred < bins[i+1])
+        if in_bin.sum() > 0:
+            avg_pred = p_pred[in_bin].mean()
+            avg_obs = y_obs[in_bin].mean()
+            cal_error += np.abs(avg_pred - avg_obs) * in_bin.sum()
+    cal_error /= len(y_obs)
+    return cal_error
+
+# Compare multiple metrics for different regularization strengths
+lambdas_compare = [0.0, 0.1, 1.0]
+metrics_results = []
+
+for lam in lambdas_compare:
+    V_fit = fit_regularized_bt(r_tr_s, c_tr_s, y_tr_s, M_small, lam=lam)
+    
+    # Compute metrics on test data
+    s_te = V_fit[r_te_s] - V_fit[c_te_s]
+    auc_te = auc_from_scores(s_te, y_te_s)
+    ll_te = compute_log_likelihood(V_fit, r_te_s, c_te_s, y_te_s)
+    cal_err = compute_calibration_error(V_fit, r_te_s, c_te_s, y_te_s)
+    
+    metrics_results.append({
+        'lambda': lam,
+        'AUC': auc_te,
+        'Log-Likelihood': ll_te,
+        'Calibration Error': cal_err
+    })
+
+# Display results
+print("\nMulti-Metric Comparison:")
+print(f"{'λ':<8} {'AUC':<8} {'Log-Lik':<12} {'Cal Error':<12}")
+print("-" * 40)
+for res in metrics_results:
+    print(f"{res['lambda']:<8.2f} {res['AUC']:<8.4f} {res['Log-Likelihood']:<12.2f} {res['Calibration Error']:<12.4f}")
+```
+
+Different metrics may favor different models. AUC focuses on ranking, log-likelihood on probability estimates, and calibration on frequency matching. Use multiple metrics to gain a comprehensive view of model quality.
+
+::: {.callout-important title="Key Takeaway: Cross-Validation Best Practices"}
+- **Use CV for hyperparameter tuning**, not test set evaluation (avoid overfitting to the test set)
+- **Report mean ± std** across folds to quantify uncertainty
+- **Stratified splitting**: For imbalanced data, ensure each fold has representative class proportions
+- **Temporal splitting**: For sequential data (e.g., chess games over time), use time-based splits instead of random CV to avoid leaking future information into past predictions
+- **Nested CV**: For unbiased performance estimates, use outer CV loop for evaluation and inner CV loop for hyperparameter selection
+:::
+
+## Optimization Methods {#sec-optimization}
+
+Gradient descent is the foundation for learning Bradley-Terry parameters, but modern optimization methods can accelerate convergence and improve final performance. We compare three widely-used optimizers and discuss when each is appropriate.
+
+### Beyond Vanilla Gradient Descent
+
+Standard gradient descent updates parameters with a fixed learning rate: $V \leftarrow V + \eta \nabla \mathcal{L}(V)$. This has two limitations:
+
+1. **Fixed step size**: Large $\eta$ causes instability; small $\eta$ slows convergence
+2. **No momentum**: Each step ignores the optimization history
+
+Modern optimizers address these issues through adaptive learning rates and momentum.
+
+### Adam Optimizer
+
+**Adam** (Adaptive Moment Estimation) maintains running averages of both gradients and squared gradients, adapting the learning rate per parameter. The update rule is:
+
+\begin{align}
+m_t &\leftarrow \beta_1 m_{t-1} + (1 - \beta_1) g_t && \text{(momentum)} \\
+v_t &\leftarrow \beta_2 v_{t-1} + (1 - \beta_2) g_t^2 && \text{(variance)} \\
+\hat{m}_t &\leftarrow m_t / (1 - \beta_1^t), \quad \hat{v}_t \leftarrow v_t / (1 - \beta_2^t) && \text{(bias correction)} \\
+V &\leftarrow V + \alpha \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon} && \text{(parameter update)}
+\end{align}
+
+where $g_t$ is the gradient at step $t$, $\beta_1 = 0.9$ and $\beta_2 = 0.999$ are typical, and $\epsilon = 10^{-8}$ prevents division by zero.
+
+```{pyodide-python}
+def fit_bt_adam(r_idx, c_idx, y_obs, M, lr=0.1, epochs=200, beta1=0.9, beta2=0.999, eps=1e-8):
+    """Fit Bradley-Terry using Adam optimizer."""
+    V = np.zeros(M)
+    m = np.zeros(M)  # first moment
+    v = np.zeros(M)  # second moment
+    
+    loss_history = []
+    
+    for t in range(1, epochs + 1):
+        # Compute gradient
+        H = V[r_idx] - V[c_idx]
+        p = 1.0 / (1.0 + np.exp(-H))
+        err = y_obs - p
+        grad = np.zeros(M)
+        np.add.at(grad, r_idx, err)
+        np.add.at(grad, c_idx, -err)
+        
+        # Adam update
+        m = beta1 * m + (1 - beta1) * grad
+        v = beta2 * v + (1 - beta2) * (grad ** 2)
+        
+        # Bias correction
+        m_hat = m / (1 - beta1 ** t)
+        v_hat = v / (1 - beta2 ** t)
+        
+        # Parameter update
+        V += lr * m_hat / (np.sqrt(v_hat) + eps)
+        
+        # Log-likelihood for monitoring
+        ll = (y_obs * np.log(p + 1e-12) + (1 - y_obs) * np.log(1 - p + 1e-12)).sum()
+        loss_history.append(-ll)  # negative log-likelihood (loss)
+    
+    return V, np.array(loss_history)
+
+# Compare GD vs Adam on the same problem
+V_gd, loss_gd = [], []
+V_adam, loss_adam = fit_bt_adam(r_tr_s, c_tr_s, y_tr_s, M_small, lr=0.1, epochs=150)
+
+# Also fit with vanilla GD
+V = np.zeros(M_small)
+for epoch in range(150):
+    H = V[r_tr_s] - V[c_tr_s]
+    p = 1.0 / (1.0 + np.exp(-H))
+    err = y_tr_s - p
+    grad = np.zeros(M_small)
+    np.add.at(grad, r_tr_s, err)
+    np.add.at(grad, c_tr_s, -err)
+    V += 0.05 * grad  # smaller LR for GD stability
+    ll = (y_tr_s * np.log(p + 1e-12) + (1 - y_tr_s) * np.log(1 - p + 1e-12)).sum()
+    loss_gd.append(-ll)
+
+loss_gd = np.array(loss_gd)
+
+# Plot convergence comparison
+plt.figure(figsize=(8, 5))
+plt.plot(loss_gd, label='Gradient Descent (lr=0.05)', alpha=0.8)
+plt.plot(loss_adam, label='Adam (lr=0.1)', alpha=0.8)
+plt.xlabel('Epoch')
+plt.ylabel('Negative Log-Likelihood (Loss)')
+plt.title('Optimization Comparison: GD vs Adam')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.yscale('log')
+plt.tight_layout()
+plt.show()
+
+print(f"Final loss - GD: {loss_gd[-1]:.4f}, Adam: {loss_adam[-1]:.4f}")
+```
+
+Adam typically converges faster than vanilla gradient descent and is less sensitive to learning rate tuning. The adaptive per-parameter learning rates help in problems with varying gradient magnitudes across parameters.
+
+### Learning Rate Schedules
+
+Instead of a fixed learning rate, **schedules** decay $\eta$ over time to enable large initial steps (fast progress) followed by small refinements (precision):
+
+- **Step decay**: $\eta_t = \eta_0 \cdot \gamma^{\lfloor t / k \rfloor}$ (reduce by factor $\gamma$ every $k$ epochs)
+- **Exponential decay**: $\eta_t = \eta_0 e^{-\lambda t}$
+- **Cosine annealing**: $\eta_t = \eta_{\min} + \frac{1}{2}(\eta_0 - \eta_{\min})(1 + \cos(\pi t / T))$
+
+Learning rate schedules are especially useful for training to convergence without extensive hyperparameter tuning.
+
+::: {.callout-important title="Key Takeaway: Choosing an Optimizer"}
+**When to use each optimizer:**
+
+- **Vanilla GD**: Simple problems, well-tuned learning rate available, or for pedagogical clarity
+- **Adam**: Default choice for most problems; robust to learning rate, fast convergence, handles sparse gradients well
+- **SGD with momentum**: When you need the theoretical guarantees of SGD (e.g., convergence proofs) but want faster practical convergence
+
+**Hyperparameter guidelines:**
+- Adam: $\alpha = 0.001$ to $0.1$, default $\beta_1 = 0.9$, $\beta_2 = 0.999$
+- GD: $\eta = 0.01$ to $0.1$, may need careful tuning
+- Learning rate schedules: Helpful when training for many epochs
+:::
+
+
+## Real-World Application: LLM Preference Learning {#sec-real-world}
+
+We now apply all three parameter learning methods to a realistic preference learning scenario inspired by language model alignment. While production LLM alignment uses datasets like Stanford Human Preferences (SHP) or Anthropic's HH-RLHF, we construct a synthetic dataset that captures key properties of real preference data: noisy labels, varying item quality, and response embeddings.
+
+### Dataset: Simulated LLM Response Preferences
+
+We simulate a setting where a language model generates multiple responses to prompts, and human annotators provide pairwise preferences. Each response is represented by a learned embedding (e.g., from a pretrained model), and the true utility is a linear function of this embedding plus noise.
+
+```{pyodide-python}
+# Simulate LLM response preference data
+rng_llm = np.random.default_rng(2024)
+
+# Setting: 50 LLM responses across different prompts
+n_responses = 50
+embedding_dim = 8  # low-dimensional for interpretability
+
+# Generate response embeddings (simulate learned representations)
+# In reality, these would be from a language model's hidden states
+response_embeddings = rng_llm.normal(0, 1, size=(n_responses, embedding_dim))
+# Normalize embeddings
+response_embeddings /= np.linalg.norm(response_embeddings, axis=1, keepdims=True)
+
+# True utility weights (what humans actually care about)
+# Positive weights favor certain embedding dimensions
+true_weights = rng_llm.normal(0, 1, size=embedding_dim)
+true_weights[0] = 2.0  # Strong preference for first dimension (e.g., helpfulness)
+true_weights[1] = -1.5  # Dispreference for second dimension (e.g., verbosity)
+
+# Compute true utilities
+true_utilities = response_embeddings @ true_weights
+
+# Generate pairwise comparisons with label noise (realistic!)
+n_comparisons = 200
+comparison_pairs = []
+comparison_labels = []
+
+for _ in range(n_comparisons):
+    # Sample a pair of responses
+    i, j = rng_llm.choice(n_responses, size=2, replace=False)
+    comparison_pairs.append((i, j))
+    
+    # True win probability with Bradley-Terry
+    p_i_wins = 1.0 / (1.0 + np.exp(-(true_utilities[i] - true_utilities[j])))
+    
+    # Add label noise: 10% of annotations are random
+    if rng_llm.random() < 0.1:
+        label = rng_llm.choice([0, 1])  # noisy label
+    else:
+        label = 1 if rng_llm.random() < p_i_wins else 0
+    
+    comparison_labels.append(label)
+
+comparison_pairs = np.array(comparison_pairs)
+comparison_labels = np.array(comparison_labels, dtype=float)
+
+print(f"Generated {n_comparisons} comparisons over {n_responses} LLM responses")
+print(f"True utility range: [{true_utilities.min():.2f}, {true_utilities.max():.2f}]")
+print(f"Label noise: ~10% of comparisons are random")
+```
+
+This synthetic dataset mimics real LLM preference data: responses have embedding representations, utilities are learned functions of embeddings, and annotations contain noise.
+
+### Applying All Three Learning Methods
+
+We apply MLE, Bayesian inference, and online learning (Elo) to the same data and compare results.
+
+```{pyodide-python}
+# Split into train/test (80/20)
+n_train = int(0.8 * n_comparisons)
+train_idx = rng_llm.choice(n_comparisons, n_train, replace=False)
+test_idx = np.array([i for i in range(n_comparisons) if i not in train_idx])
+
+r_train = comparison_pairs[train_idx, 0]
+c_train = comparison_pairs[train_idx, 1]
+y_train = comparison_labels[train_idx]
+
+r_test = comparison_pairs[test_idx, 0]
+c_test = comparison_pairs[test_idx, 1]
+y_test = comparison_labels[test_idx]
+
+# Method 1: Maximum Likelihood with L2 Regularization
+V_mle = fit_regularized_bt(r_train, c_train, y_train, n_responses, lam=0.05, lr=0.1, epochs=300)
+
+# Method 2: Bayesian Inference (simplified - just get point estimate from posterior mean)
+# Full MCMC would be expensive; here we use MAP estimate (equivalent to regularized MLE)
+V_bayes = fit_regularized_bt(r_train, c_train, y_train, n_responses, lam=0.1, lr=0.1, epochs=300)
+
+# Method 3: Online Learning (Elo) - process comparisons sequentially
+V_elo = np.zeros(n_responses)
+K_factor = 0.1
+for i, j, y in zip(r_train, c_train, y_train):
+    p = 1.0 / (1.0 + np.exp(-(V_elo[i] - V_elo[j])))
+    if y == 1.0:
+        V_elo[i] += K_factor * (1 - p)
+        V_elo[j] -= K_factor * (1 - p)
+    else:
+        V_elo[j] += K_factor * p
+        V_elo[i] -= K_factor * p
+    V_elo -= V_elo.mean()  # center
+
+# Evaluate all three methods on test data
+s_mle = V_mle[r_test] - V_mle[c_test]
+s_bayes = V_bayes[r_test] - V_bayes[c_test]
+s_elo = V_elo[r_test] - V_elo[c_test]
+
+auc_mle = auc_from_scores(s_mle, y_test)
+auc_bayes = auc_from_scores(s_bayes, y_test)
+auc_elo = auc_from_scores(s_elo, y_test)
+
+ll_mle = compute_log_likelihood(V_mle, r_test, c_test, y_test)
+ll_bayes = compute_log_likelihood(V_bayes, r_test, c_test, y_test)
+ll_elo = compute_log_likelihood(V_elo, r_test, c_test, y_test)
+
+# Compare learned utilities to ground truth
+# Align learned utilities to true utilities (up to affine transformation)
+def align_utilities(V_learned, V_true):
+    """Align learned to true utilities via least squares."""
+    V_norm = (V_learned - V_learned.mean()) / (V_learned.std() + 1e-8)
+    A = np.vstack([V_norm, np.ones_like(V_norm)]).T
+    a, b = np.linalg.lstsq(A, V_true, rcond=None)[0]
+    return a * V_norm + b
+
+V_mle_aligned = align_utilities(V_mle, true_utilities)
+V_bayes_aligned = align_utilities(V_bayes, true_utilities)
+V_elo_aligned = align_utilities(V_elo, true_utilities)
+
+corr_mle = np.corrcoef(true_utilities, V_mle_aligned)[0, 1]
+corr_bayes = np.corrcoef(true_utilities, V_bayes_aligned)[0, 1]
+corr_elo = np.corrcoef(true_utilities, V_elo_aligned)[0, 1]
+
+# Display results
+print("\n=== Method Comparison ===")
+print(f"{'Method':<20} {'Test AUC':<12} {'Test LL':<12} {'Corr w/ True':<15}")
+print("-" * 60)
+print(f"{'MLE (λ=0.05)':<20} {auc_mle:<12.4f} {ll_mle:<12.2f} {corr_mle:<15.4f}")
+print(f"{'Bayesian (λ=0.1)':<20} {auc_bayes:<12.4f} {ll_bayes:<12.2f} {corr_bayes:<15.4f}")
+print(f"{'Online (Elo K=0.1)':<20} {auc_elo:<12.4f} {ll_elo:<12.2f} {corr_elo:<15.4f}")
+
+# Visualize learned vs true utilities
+fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+
+for ax, V_learned, method, corr in zip(axes, 
+                                         [V_mle_aligned, V_bayes_aligned, V_elo_aligned],
+                                         ['MLE', 'Bayesian', 'Elo'],
+                                         [corr_mle, corr_bayes, corr_elo]):
+    ax.scatter(true_utilities, V_learned, alpha=0.6, s=30)
+    ax.plot([true_utilities.min(), true_utilities.max()], 
+            [true_utilities.min(), true_utilities.max()], 
+            'r--', alpha=0.5)
+    ax.set_xlabel('True Utility')
+    ax.set_ylabel('Learned Utility')
+    ax.set_title(f'{method} (r={corr:.3f})')
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+```
+
+### Key Observations
+
+The three methods yield similar performance on this synthetic LLM preference task:
+
+1. **MLE** is fastest and most scalable, suitable for large-scale applications
+2. **Bayesian** inference (here approximated via MAP) provides similar point estimates but can quantify uncertainty (full MCMC omitted for brevity)
+3. **Online (Elo)** learns incrementally, ideal for streaming data but may be less data-efficient than batch methods
+
+All methods successfully recover utilities correlated with the ground truth despite 10% label noise, demonstrating robustness. In production LLM alignment:
+
+- **Data scale**: Real datasets have 10K-100K+ comparisons
+- **Cold start**: New responses have no comparison history; requires initialization strategies
+- **Computational cost**: MCMC becomes expensive; MLE or online methods preferred
+- **Temporal drift**: User preferences may evolve; online methods naturally adapt
+
+::: {.callout-note title="Connecting to DPO"}
+Recall from @sec-llm-example that Direct Preference Optimization (DPO) for language models is equivalent to Bradley-Terry MLE where the "utility" is $\beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)}$. The MLE techniques developed in this chapter directly apply to DPO training: regularization prevents overfitting to preference data, and optimization methods (Adam, learning rate schedules) accelerate convergence.
+:::
+
+## Discussion Questions
+
+- In the synthetic experiments, why is the Bayes optimal AUC less than 1.0 even though we know the true parameters? What does this reveal about the fundamental limits of prediction from noisy preference data?
+
+- How does L2 regularization affect the bias-variance tradeoff in Bradley-Terry estimation? Under what data conditions (sample size, noise level, number of items) would you expect regularization to have the largest impact on test performance?
+
+- When would you prefer online learning (Elo) over batch learning (MLE) for preference model estimation? Consider computational cost, data arrival patterns, and statistical efficiency. Can you design a hybrid approach that combines benefits of both?
+
+- The Bayesian approach via MCMC provides posterior distributions over parameters, while MLE gives point estimates. Beyond uncertainty quantification, what practical advantages might the full posterior provide? How would you use posterior samples to make decisions (e.g., which items to present to users)?
+
+- Cross-validation assumes that folds are exchangeable—that the data distribution is the same across all folds. For sequential preference data (e.g., chess games ordered in time, or LLM preferences from a changing user population), this assumption may be violated. How should cross-validation be adapted for temporal data? What are the risks of using standard k-fold CV on sequential data?
+
+- In the LLM preference learning example, all three methods (MLE, Bayesian, Elo) achieved similar test AUC despite different training procedures. Under what circumstances would you expect the methods to diverge in performance? Consider data scale, noise level, model mis-specification, and computational budget.
+
+## Bibliographic Notes
+
+**Maximum likelihood estimation** for preference models dates back to @bradley1952rank's original work on paired comparisons. The connection to modern machine learning was established through applications in ranking [@herbrich2006trueskill] and recommender systems [@koren2009matrix]. @hunter2004mm provided efficient MM algorithms for Bradley-Terry MLE that scale to large problems.
+
+**Bayesian inference for preference data** has a long history in psychometrics and experimental design. @davidson1970extending developed Bayesian approaches for paired comparisons. Modern MCMC methods for Bradley-Terry models are surveyed in @caron2012bayesian. The connection between L2 regularization and Gaussian priors (MAP estimation) is standard in Bayesian machine learning [@murphy2012machine].
+
+**The Elo rating system** was introduced by @elo1978rating for chess rankings and has since been applied broadly to competitive games [@glickman1999parameter introduced the Glicko system with uncertainty estimates], online platforms [@herbrich2006trueskill for Xbox matchmaking], and information retrieval. The interpretation of Elo as stochastic gradient descent on the Bradley-Terry log-likelihood clarifies its connection to machine learning [@weng2006bayesian].
+
+**Regularization** in statistical learning has roots in ridge regression [@hoerl1970ridge] and has become central to modern machine learning [@hastie2009elements]. Early stopping as implicit regularization was analyzed by @yao2007early. The bias-variance tradeoff provides the theoretical foundation for why regularization improves generalization [@geman1992neural].
+
+**Cross-validation** was formalized by @stone1974cross and @geisser1975predictive for model selection. @kohavi1995study provided practical guidance for k-fold CV. Nested cross-validation to avoid selection bias was emphasized by @cawley2010overfitting. Temporal validation strategies for time-series data are discussed in @bergmeir2018note.
+
+**Optimization methods** for machine learning are surveyed in @ruder2016overview. Adam was introduced by @kingma2014adam and has become the default optimizer for deep learning. Convergence analysis for gradient descent on convex problems (including logistic regression, which includes Bradley-Terry) is classical [@boyd2004convex]. Learning rate schedules and their impact on generalization are discussed in @loshchilov2016sgdr.
+
+**LLM alignment** via preference learning gained prominence with @christiano2017deep's introduction of RLHF. The connection to Bradley-Terry and reward modeling was made explicit in @ouyang2022training (InstructGPT). Direct Preference Optimization (DPO) [@rafailov2023direct] showed that RLHF can be reformulated as Bradley-Terry MLE, eliminating the need for a separate reward model. Recent work explores calibration [@stiennon2020learning], robustness to noise [@bai2022constitutional], and scaling laws [@gao2022scaling] for preference-based LLM training.
+
+**For further reading**: @agresti2002categorical provides comprehensive coverage of categorical data analysis including paired comparisons. @marden1995analyzing covers ranking models from a statistical perspective. @liu2011learning surveys learning-to-rank methods in information retrieval, many of which build on preference models.
+
+## Exercises
+
+Exercises are marked with difficulty levels: (*) for introductory, (**) for intermediate, and (***) for challenging.
+
+### Gradient Derivation for Plackett-Luce (*)
+
+The Plackett-Luce model extends Bradley-Terry to full rankings. Given a ranking $(j_1 \succ j_2 \succ \cdots \succ j_M)$, the likelihood is:
+$$
+p(\text{ranking} \mid V) = \prod_{k=1}^{M-1} \frac{\exp(V_{j_k})}{\sum_{\ell=k}^M \exp(V_{j_\ell})}
+$$
+
+(a) Write the log-likelihood for a single ranking as a function of utilities $V$.
+
+(b) Derive the gradient $\frac{\partial \log p}{\partial V_m}$ for an arbitrary item $m$. *Hint: Consider three cases: $m$ appears at position $k$, $m$ appears after position $k$, and $m$ does not appear in the ranking.*
+
+(c) Implement gradient ascent for Plackett-Luce on simulated ranking data. Compare convergence to Bradley-Terry MLE—which converges faster and why?
+
+### L2 Regularized Bradley-Terry (**)
+
+(a) Implement Bradley-Terry MLE with L2 regularization for a range of $\lambda$ values. Generate synthetic data with $M = 20$ items and vary the number of comparisons from 50 to 500. Plot test AUC vs $\lambda$ for each dataset size.
+
+(b) Explain why the optimal $\lambda$ decreases as the number of comparisons increases. At what rate does it decay?
+
+(c) Derive the Hessian matrix of the regularized log-likelihood. Under what conditions is it positive definite (ensuring a unique global maximum)?
+
+### K-Fold Cross-Validation Implementation (**)
+
+(a) Implement 5-fold cross-validation for Bradley-Terry estimation from scratch (without using sklearn or similar libraries). Your implementation should:
+   - Randomly partition comparison data into 5 folds
+   - Train on 4 folds, validate on 1 fold
+   - Repeat for all 5 folds
+   - Return mean and standard deviation of validation AUC
+
+(b) Compare your CV implementation to a single 80/20 train/test split over 20 random seeds. Which provides a more stable performance estimate?
+
+(c) Extend your implementation to stratified CV: ensure each fold has approximately equal proportions of wins for each item. Why might stratification improve CV estimates for imbalanced data?
+
+### Learning Rate Sensitivity Analysis (*)
+
+(a) For Bradley-Terry MLE on synthetic data ($M = 15$ items, 100 comparisons), experiment with learning rates $\eta \in \{0.001, 0.01, 0.05, 0.1, 0.5, 1.0\}$. Plot the training loss curve for each learning rate.
+
+(b) Identify the learning rate that achieves the lowest final loss. What happens with learning rates that are too large? Too small?
+
+(c) Implement a learning rate schedule (e.g., exponential decay $\eta_t = \eta_0 \cdot 0.95^t$) and compare to fixed learning rate. Does the schedule improve final performance?
+
+### MCMC Diagnostics (**)
+
+The Metropolis-Hastings implementation in @sec-bayesian produces a chain of samples. Assess convergence quality:
+
+(a) Implement the **effective sample size** (ESS) diagnostic: ESS estimates how many independent samples the chain is equivalent to, accounting for autocorrelation. For a chain $\{V^{(t)}\}_{t=1}^T$, the ESS for parameter $V_j$ is approximately:
+$$
+\text{ESS}_j = \frac{T}{1 + 2\sum_{k=1}^K \rho_k}
+$$
+where $\rho_k$ is the autocorrelation at lag $k$.
+
+(b) Run the MH algorithm from @sec-bayesian with different proposal step sizes $\tau \in \{0.01, 0.05, 0.1, 0.5\}$. Plot ESS vs $\tau$. What happens when $\tau$ is too small? Too large?
+
+(c) Implement trace plots for multiple chains (run MH 3 times with different initializations). Do all chains converge to the same stationary distribution?
+
+### Optimization Method Comparison (**)
+
+(a) Implement gradient descent with momentum: $m_t \leftarrow \beta m_{t-1} + \nabla \mathcal{L}(V_t)$, $V_{t+1} \leftarrow V_t + \eta m_t$ where $\beta \in [0, 1)$ controls momentum.
+
+(b) On the same synthetic Bradley-Terry problem, compare four optimizers: vanilla GD, GD with momentum ($\beta = 0.9$), Adam, and RMSprop. Plot convergence curves (loss vs iteration).
+
+(c) For each optimizer, find the best learning rate via grid search. Which optimizer is most sensitive to learning rate tuning?
+
+### Convergence Proof (***)
+
+Prove that gradient ascent on the Bradley-Terry log-likelihood converges to the global maximum (assuming the maximum exists).
+
+(a) Show that the Bradley-Terry log-likelihood is strictly concave when the comparison graph is strongly connected (every pair of items is connected by a directed path of comparisons).
+
+(b) Prove that gradient ascent with sufficiently small step size $\eta$ converges to the unique global maximum. *Hint: Use the fact that the gradient vanishes only at the maximum for strictly concave functions.*
+
+(c) What happens when the comparison graph is not strongly connected? Construct an example with multiple disconnected components and characterize the set of maximum likelihood estimators.
+
+### Calibration Metrics (*)
+
+(a) Implement a calibration plot: bin predicted probabilities into 10 intervals $[0, 0.1), [0.1, 0.2), \ldots, [0.9, 1.0]$, and for each bin, compute the average predicted probability and the empirical frequency of wins.
+
+(b) Generate synthetic Bradley-Terry data and fit two models: one correctly specified (Bradley-Terry) and one mis-specified (assume all items have equal utility). Plot calibration curves for both. Which is better calibrated?
+
+(c) Define the Expected Calibration Error (ECE): $\text{ECE} = \sum_{b=1}^B \frac{|B_b|}{N} |\bar{p}_b - \bar{y}_b|$ where $\bar{p}_b$ is the average predicted probability in bin $b$, $\bar{y}_b$ is the empirical frequency, and $|B_b|$ is the number of predictions in bin $b$. Compute ECE for your models.
+
+### Online to Batch Convergence (*)
+
+(a) Implement Elo with a decreasing K-factor: $K_t = K_0 / \sqrt{t}$ where $t$ is the iteration number. This is known as the Robbins-Monro condition for stochastic approximation.
+
+(b) On synthetic Bradley-Terry data, run Elo with decreasing $K_t$ and compare the final learned parameters to batch MLE. How close do they converge?
+
+(c) Prove (or argue informally) that Elo with $K_t = \eta / \sqrt{t}$ converges to the MLE in the limit as $t \to \infty$. Under what conditions does this hold?
+
+### Hyperparameter Tuning with Nested Cross-Validation (***)
+
+To obtain an unbiased estimate of generalization performance when hyperparameters are selected via CV, we use nested (double) CV:
+
+- **Outer loop**: K-fold CV to estimate generalization
+- **Inner loop**: For each outer fold, use K-fold CV on the training data to select hyperparameters
+
+(a) Implement nested 5-fold CV for Bradley-Terry with L2 regularization. The inner loop tunes $\lambda$, the outer loop estimates test AUC.
+
+(b) Compare the nested CV test AUC estimate to: (i) a single train/test split with CV on training data for $\lambda$ selection, and (ii) CV test AUC when $\lambda$ is selected using the outer CV test set (data leakage). Which is more optimistic? Pessimistic?
+
+(c) Why is nested CV important? Give an example where selecting hyperparameters on the same data used for final evaluation leads to overly optimistic performance estimates.
+
+### Real-World Dataset Application (***)
+
+Apply the methods from this chapter to a real preference dataset:
+
+(a) Obtain a dataset such as the Jester jokes dataset (user ratings), a subset of MovieLens, or chess game outcomes from Lichess. Describe the data: number of items, number of comparisons, sparsity.
+
+(b) Apply all three methods (MLE with regularization, Bayesian inference, online Elo) and compare their performance using multiple metrics (AUC, log-likelihood, calibration error). Use cross-validation to tune hyperparameters.
+
+(c) Visualize the learned item parameters. Do they agree with intuition (e.g., highly-rated movies have high utility)? Identify the top-5 and bottom-5 items according to each method—do the methods agree?
+
+(d) Discuss practical challenges encountered: computational cost, cold-start items, missing data, temporal effects. How would you address these in a production system?
+
+### Bias-Variance Tradeoff Demonstration (**)
+
+(a) Generate synthetic Bradley-Terry data with $M = 10$ items and vary the training set size $n \in \{20, 50, 100, 200, 500\}$ comparisons. For each $n$ and several regularization strengths $\lambda$, fit models and compute:
+   - **Bias**: Average difference between learned and true parameters
+   - **Variance**: Standard deviation of learned parameters across 50 random datasets
+
+(b) Plot bias and variance vs $\lambda$ for each training set size. Verify that as $\lambda$ increases, bias increases and variance decreases.
+
+(c) Plot test AUC vs $\lambda$ and identify the optimal $\lambda$ for each $n$. How does the optimal regularization strength change with dataset size?

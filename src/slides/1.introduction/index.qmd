@@ -1,0 +1,279 @@
+---
+title: "Chapter 1: Introduction"
+subtitle: "Machine Learning from Human Preferences"
+author: "Sanmi Koyejo & Sang Truong"
+footer: "CS329H - Chapter 1: Introduction"
+---
+
+## Overview
+
+*Machine Learning from Human Preferences* explores the challenge of efficiently and effectively eliciting preferences from individuals, groups, and societies and embedding them within AI systems.
+
+## Overview
+
+We focus on **statistical and conceptual foundations** and **strategies for interactively querying humans** to elicit information that improves learning and applications.
+
+![](figures/foundation_strategies.png)
+
+## Overview
+
+This class is not exhaustive!
+
+![](figures/class_introduction.png)
+
+## Overview
+
+Feedback can be included at any step of training
+
+![](figures/human_in_nlp_loop.png)
+
+::: {.citation}
+Z. J. Wang, *et al.* "Putting humans in the natural language processing loop: A survey." *HCI+NLP Workshop* (2021). Slides modified from Diyi Yang
+:::
+
+## Overview
+
+Feedback-Update Taxonomy
+
+::: {.smaller}
+|  | Dataset Update | Loss Function Update | Parameter Space Update |
+|--|----------------|----------------------|------------------------|
+| **Domain** | Dataset modification, Augmentation, Preprocessing, Data generation from constraint, Fairness, weak supervision, Use unlabeled data, Check synthetic data | Constraint specification, Fairness, Interpretability, Resource constraints | Model editing, Rules, Weights, Model selection, Prior update, Complexity |
+| **Observation** | Active data collection, Add data, Relabel data, Reweighting data, collecting expert labels, Passive observation | Constraint elicitation, Metric learning, Human representations, Collecting contextual information, Generative factors, concept representations, Feature attributions | Feature modification, Add/remove features, Engineering features |
+:::
+
+::: {.citation}
+C. Chen, *et al.* "Perspectives on Incorporating Expert Feedback into Model Updates." *ArXiv* (2022). Slides modified from Diyi Yang
+:::
+
+## Examples: Natural Languages
+
+![](figures/chatgpt.png)
+
+## Examples: Natural Languages
+
+Builds on research studying human feedback in language
+
+![](figures/document_classification.png)
+
+::: {.citation}
+Harpale, Sunita Sarawagi, and Soumen Chakrabarti. "Document classification through interactive supervision of document and term labels." In *European Conference on Principles of Data Mining and Knowledge Discovery*, pp. 185-196. Springer, Berlin, Heidelberg, 2004.
+:::
+
+## Examples: Natural Languages
+
+:::: {.columns}
+::: {.column width="50%"}
+![](figures/htl_parsing_1.jpg)
+:::
+::: {.column width="50%"}
+![](figures/htl_parsing_2.jpg)
+:::
+::::
+
+::: {.citation}
+Luheng He, Julian Michael, Mike Lewis, and Luke Zettlemoyer. "Human-in-the-loop parsing." In *Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing*, pp. 2337-2342. 2016.
+:::
+
+## Examples: Natural Languages
+
+![](figures/training_rlhf.png)
+
+::: {.citation}
+Ouyang *et al.*, "Training language models to follow instructions with human feedback"
+:::
+
+## Examples: Natural Languages
+
+OpenAI Experiments with RLHF
+
+:::: {.columns}
+::: {.column width="40%"}
+![](figures/openai_rlhf.jpg)
+:::
+::: {.column width="60%"}
+![](figures/openai_example.png)
+:::
+::::
+
+::: {.citation}
+Nisan Stiennon, "Learning to Summarize with Human Feedback." Advances in Neural Information Processing Systems, 33 (2020): 3008-3021.
+:::
+
+## Motivation
+
+- Provides a mechanism for gathering signals about correctness that are difficult to describe via data or cost functions, e.g., what does it mean to be funny?
+- Provides signals best defined by stakeholders, e.g., helpfulness, fairness, safety training, and alignment.
+- Useful when evaluation is easier than modeling ideal behavior.
+- Sometimes, we do not care about human preferences per se; we care about fixing model mistakes.
+
+## Motivation
+
+We have not figured out how to do it quite right, or we need new approaches
+
+- Human preferences data reflects human biases, such as length and authoritative tone.
+- Human preferences can be unreliable, e.g., reward hacking in RL.
+
+:::: {.columns}
+::: {.column width="45%"}
+![](figures/ms_news.png)
+:::
+::: {.column width="55%"}
+![](figures/gg_news.png)
+:::
+::::
+
+## Ethical Issues
+
+- Labeling often depends on low-cost human labor
+- The line between economic opportunity and employment is unclear
+- May cause psychological issues for some workers
+
+![](figures/openai_ethical.jpg){fig-align="center" width="60%"}
+
+## Ethical Issues
+
+![](figures/opinion_lm.png)
+
+::: {.citation}
+Santurkar, *et al.*, "Whose Opinions Do Language Models Reflect?"
+:::
+
+## Examples: Dueling Bandits
+
+Personalize therapy
+
+:::: {.columns}
+::: {.column width="50%"}
+![](figures/personalized_therapy.png)
+:::
+::: {.column width="50%"}
+![](figures/preferencefeedback+duelingbandit.png)
+:::
+::::
+
+## Examples: Metric Elicitation
+
+- Determine the fairness and performance metric by interacting with individual stakeholders [1,2]
+- Metric elicitation from stakeholder groups [3]
+
+![](figures/metric_elicitation.png){fig-align="center" width="25%"}
+
+::: {.citation}
+[1] Hiranandani et al., Fair Performance Metric Elicitation
+
+[2] Hiranandani et al., Metric Elicitation; Moving from Theory to Practice
+
+[3] Robertson et al., Probabilistic Performance Metric Elicitation
+:::
+
+## Examples: Metric Elicitation
+
+Why elicit metric preferences?
+
+![](figures/why_elicit_metric.png)
+
+## Examples: Inverse RL
+
+![](figures/cidt.png)
+
+::: {.citation}
+Robertson *et al.* "Cooperative inverse decision theory for uncertain preferences," 2023.
+:::
+
+## Examples: Recommender Systems
+
+![](figures/recom_sys.png)
+
+## Examples: RLHF
+
+:::: {.columns}
+::: {.column width="50%"}
+![](figures/rlhf1.jpg)
+
+::: {.citation}
+W. Bradley Knox, and Peter Stone. "Tamer: Training an agent manually via evaluative reinforcement." In *2008 7th IEEE international conference on development and learning*, pp. 292-297. IEEE, 2008.
+:::
+:::
+::: {.column width="50%"}
+![](figures/rlhf2.jpg)
+
+::: {.citation}
+Paul F. Christiano, Jan Leike, Tom Brown, Miljan Martic, Shane Legg, and Dario Amodei. "Deep reinforcement learning from human preferences." *Advances in neural information processing systems*, 30 (2017).
+:::
+:::
+::::
+
+## Examples: Inverse RL
+
+Flying helicopters using imitation learning and inverse reinforcement learning (IRL)
+
+{{< video https://www.youtube.com/embed/0JL04JJjocc width="80%" height="400" >}}
+
+::: {.citation}
+Adam Coates, Pieter Abbeel, and Andrew Y. Ng. 2008. Learning for control from multiple demonstrations. In *Proceedings of the 25th International Conference on Machine learning* (ICML '08). Association for Computing Machinery, New York, NY, USA, 144-151.
+:::
+
+## Examples: Inverse RL
+
+:::: {.columns}
+::: {.column width="50%"}
+{{< video https://www.youtube.com/embed/baAQ7JYUWM4 width="100%" height="350" >}}
+:::
+::: {.column width="50%"}
+{{< video https://www.youtube.com/embed/otoevHE-9Xo width="100%" height="350" >}}
+:::
+::::
+
+::: {.citation}
+E Biyik, D Sadigh, "Batch Active Preference-Based Learning of Reward Functions," *2nd Conference on Robot Learning* (CoRL), Zurich, Switzerland, Oct. 2018.
+:::
+
+## Examples: Inverse RL
+
+{{< video https://www.youtube.com/embed/HExrlibCxdI?start=142 width="100%" height="450" >}}
+
+::: {.citation}
+Erdem Biyik, Aditi Talati, and Dorsa Sadigh. 2022. APReL: A Library for Active Preference-based Reward Learning Algorithms. In *Proceedings of the 2022 ACM/IEEE International Conference on Human-Robot Interaction* (HRI '22). IEEE Press, 613-617.
+:::
+
+## Examples: Inverse RL
+
+Reward hacking
+
+{{< video https://www.youtube.com/embed/tlOIHko8ySg width="90%" height="450" >}}
+
+## Tradeoffs
+
+Design of tools for eliciting feedback from humans often has to tradeoff several factors
+
+![](figures/eliciting_tool.png)
+
+## Key Assumptions & Discussion
+
+![](figures/assumption+discussion.png)
+
+## Logistics: Course Goals
+
+- Focus on breadth vs. depth
+- **Foundations:** Judgement, decision making and choice, biases (psychology, marketing), discrete choice theory, mechanism design, choice aggregation (micro-economics), human-computer interaction, ethics
+- **Machine learning:** Modeling, active learning, bandits
+- **Applications:** recommender systems, language models, reinforcement learning, AI alignment
+- **Note:** Schedule is tentative
+
+## Logistics: Prerequisites
+
+CS 221, CS 229, or equivalent. You are expected to:
+
+- Be proficient in Python and LaTeX. Most homework and projects will include a programming component.
+- Be comfortable with machine learning concepts, such as train and test set, model fitting, function class, and loss functions.
+
+## Logistics: Books
+
+Our textbook is available online at: [mlhp.stanford.edu](https://mlhp.stanford.edu)
+
+## Next Topics
+
+Chapter 2: Human Decision Making and Choice Models
+
+## Welcome to CS329H!

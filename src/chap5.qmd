@@ -12,15 +12,15 @@ execute:
 ::: {.content-visible when-format="html"}
 
 <iframe
-  src="https://web.stanford.edu/class/cs329h/slides/4.1.dueling_bandit/#/"
+  src="../slides/4.1.dueling_bandit/"
   style="width:45%; height:225px;"
 ></iframe>
 <iframe
-  src="https://web.stanford.edu/class/cs329h/slides/4.2.preferential_baysian_optimization/#/"
+  src="../slides/4.2.preferential_baysian_optimization/"
   style="width:45%; height:225px;"
 ></iframe>
-[Fullscreen Part 1](https://web.stanford.edu/class/cs329h/slides/4.1.dueling_bandit/#/){.btn .btn-outline-primary .btn role="button"}
-[Fullscreen Part 2](https://web.stanford.edu/class/cs329h/slides/4.2.preferential_baysian_optimization/#/){.btn .btn-outline-primary .btn role="button"}
+[Fullscreen Part 1](../slides/4.1.dueling_bandit/){.btn .btn-outline-primary .btn role="button"}
+[Fullscreen Part 2](../slides/4.2.preferential_baysian_optimization/){.btn .btn-outline-primary .btn role="button"}
 
 :::
 
