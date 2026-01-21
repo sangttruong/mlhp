@@ -1,0 +1,71 @@
+\usepackage{tcolorbox}
+\tcbuselibrary{skins}     % allow changing skin
+\tcbuselibrary{breakable} % allow breaking across pages
+
+% colors (solarized) (must be in cmyk)
+\definecolor{.yellow}{cmyk}{.29,.43,1,.06}
+\definecolor{.orange}{cmyk}{.15,.84,1,.04}
+\definecolor{.red}{cmyk}{.08,.94,.93,.01}
+\definecolor{.magenta}{cmyk}{.13,.92,.16,0}
+\definecolor{.violet}{cmyk}{.63,.59,0,0}
+\definecolor{.blue}{cmyk}{.77,.36,0,0}
+\definecolor{.cyan}{cmyk}{.77,.15,.46,.01}
+\definecolor{.green}{cmyk}{.53,.24,1,.04}
+\definecolor{.base0}{cmyk}{.52,.34,.37,.02}
+\definecolor{.grey}{cmyk}{0,0,0,.56}
+
+% icons for boxes
+% (not using fontawesome5 package because some needed icons are from 6)
+\usepackage{fontspec}
+\newfontfamily{\fa}[Path=resources/fonts/fontawesome/webfonts/]{fa-solid-900.ttf}
+\def\faAppleWhole{{\fa \symbol{"F5D1}}}
+\def\faMicroscope{{\fa \symbol{"F610}}}
+\def\faLeaf{{\fa \symbol{"F06C}}}
+\def\faPersonFallingBurst{{\fa \symbol{"E547}}}
+\def\faCode{{\fa \symbol{"F121}}}
+\def\faMagnifyingGlassPlus{{\fa \symbol{"F00E}}}
+\def\faPenRuler{{\fa \symbol{"F5AE}}}
+\def\faComments{{\fa \symbol{"F086}}}
+\def\faBook{{\fa \symbol{"F02D}}}
+\def\faPenSquare{{\fa \symbol{"F044}}}
+\def\faQuestion{{\fa \symbol{"F128}}}
+
+% icons for prereg chapter
+\def\faFire{{\fa \symbol{"F06D}}}
+\def\faSnowflake{{\fa \symbol{"F2DC}}}
+
+% set options for all boxes
+\usepackage{enumitem}
+\def\pagewidth{\marginparsep+\marginparsep+1pt}
+\tcbset{enhanced jigsaw,                          % skin
+        breakable,                                % break across pages
+        boxrule=2pt,                              % border width
+        colback=white,                            % background color
+        fonttitle=\sffamily\scshape\Large,        % title sans and small caps
+        left=2mm, right=2mm,                      % padding inside box
+        toptitle=1mm, bottomtitle=1mm,            % spacing above/below title
+        grow to right by=\pagewidth,              % fullwidth
+        % show bounding box,
+        fontupper=\small,
+        before upper={\parskip6pt                 % format settings within box
+                      \setlist[itemize]{leftmargin=*,label={--}}
+                      \setlist[enumerate]{leftmargin=*}}}
+
+% define box for references
+\newtcolorbox{refsbox}{%
+  size=minimal}                 % no padding space, no box rules
+  % fontupper=\footnotesize}      % smaller font inside
+
+\renewenvironment{CSLReferences}[2] % #1 hanging-indent, #2 entry-spacing
+ {\begin{refsbox}\begin{list}{}{%
+  \setlength{\itemindent}{0pt}
+  \setlength{\leftmargin}{0pt}
+  \setlength{\parsep}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+   \setlength{\leftmargin}{\cslhangindent}
+   \setlength{\itemindent}{-1\cslhangindent}
+  \fi
+  % set entry spacing
+  \setlength{\itemsep}{#2\baselineskip}}}
+ {\end{list}\end{refsbox}}

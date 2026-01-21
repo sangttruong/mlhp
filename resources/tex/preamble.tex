@@ -1,0 +1,171 @@
+%%%%%%%%%%%%%%%%%%%%
+% start preamble.tex
+%%%%%%%%%%%%%%%%%%%%
+
+\input{resources/tex/boxes.tex}
+
+% page layout
+\usepackage{geometry}
+\geometry{
+  dvips=false, pdftex=false, vtex=false, % drivers can have unexpected behaviors
+  papersize={8in,10in},                  % size specified by MIT Press
+  centering,                             % split margins equally
+  margin=.6in,                           % margins (must all be at least .5in)
+  includemp, includehead                % include sidenotes & header in body
+  % showframe                              % show page structure (for debugging)
+}
+
+% set fonts
+% \setmainfont[]{ETbb}
+\setmainfont{ETbb}[
+  UprightFont = {*-Regular},
+  BoldFont = {*-Bold},
+  ItalicFont = {*-Italic},
+  BoldItalicFont = {*-BoldItalic},
+  Path = {./resources/fonts/ETbb/},
+  Extension = {.otf}
+]
+
+\setsansfont{SourceSansPro}[
+  UprightFont = {*-Regular},
+  % BoldFont = {*-Bold},
+  % ItalicFont = {*-Italic},
+  Path = {./resources/fonts/},
+  Extension = {.ttf}
+]
+
+% set font specifications
+\setkomafont{disposition}{\rmfamily\itshape}
+\addtokomafont{part}{\sffamily\scshape}
+\addtokomafont{partnumber}{\sffamily\scshape}
+\addtokomafont{chapter}{\sffamily\scshape}
+\setkomafont{partentry}{\sffamily\scshape}
+\setkomafont{chapterentry}{\sffamily\scshape}
+\addtokomafont{title}{\sffamily}%\scshape}
+\addtokomafont{subtitle}{\sffamily}%\scshape}
+% \addtokomafont{author}{\sffamily}
+\addtokomafont{pagehead}{\sffamily\scshape}
+\addtokomafont{pagenumber}{\sffamily\scshape}
+
+\usepackage{amsmath}
+\usepackage{unicode-math}
+
+% adjust spacing around section headers
+\RedeclareSectionCommand[
+  runin=false,
+  afterskip=0pt % remove extra space after for section
+]{section}
+\RedeclareSectionCommand[
+  runin=false,
+  afterskip=0pt % remove extra space after for subsection
+]{subsection}
+
+% only part number on part title pages
+\renewcommand{\partformat}{\thepart}
+
+% headers/footers
+\usepackage{scrlayer-scrpage}
+\KOMAoptions{headwidth=textwithmarginpar} % make header full width
+\automark{chapter}
+\clearpairofpagestyles
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}} % prevent chaptermark from uppercasing
+\ihead{%
+  \ifnum\value{chapter}>0 \thechapter\hspace{3pt} \fi % include chapter number if not 0
+  \textsc{\leftmark} % then chapter name
+}
+\ohead{\pagemark}
+\pagestyle{scrheadings}
+
+% table of contents
+\usepackage[titles]{tocloft}
+\renewcommand{\cftpartfont}{\sffamily\scshape\Large}     % part title
+\renewcommand{\cftpartpagefont}{\sffamily\scshape\large} % part page number
+\setlength{\cftbeforepartskip}{1.25em}                   % part vspace before
+\renewcommand{\cftchapfont}{\sffamily\scshape\large}     % chapter title
+\renewcommand{\cftchappagefont}{\sffamily\scshape\large} % chapter page number
+\setlength{\cftbeforechapskip}{.05em}                    % chapter vspace before
+
+% set chapter numbers flushright
+\newcommand{\chapnumlen}{.5em}
+\renewcommand{\cftchappresnum}{\hfill}
+\renewcommand{\cftchapaftersnum}{\hspace*{\chapnumlen}}
+\addtolength{\cftchapnumwidth}{\chapnumlen}
+% \renewcommand{\cftchapnumwidth}{\chapnumlen}
+% \addtolength{\cftchapindent}{2em}
+
+% \setlength{\cftbeforechapskip}{.25em}
+% \setlength{\cftbeforepartskip}{1.5em}
+
+\newcommand{\partnumlen}{.75em}
+\renewcommand{\cftpartpresnum}{\hfill}
+\renewcommand{\cftpartaftersnum}{\hspace*{\partnumlen}}
+% \addtolength{\cftpartnumwidth}{\partnumlen}
+\setlength{\cftpartindent}{0em}
+% \renewcommand{\cftpartnumwidth}{\partnumlen}
+
+% \renewcommand{\cftpartnumwidth}{\cftpartpagewidth}
+% \renewcommand{\cftpartnumformat}[1]{\hfill{\bfseries #1}} % Adjust font weight/style if necessary
+% \renewcommand{\cftpartnumwidth}{\numlen}  % Adjust this width as needed
+% \renewcommand{\cftpartleader}{\hfill} % Use this to add the space before the number
+
+% lists
+\usepackage{enumitem}
+\setlist[itemize]{
+  label={--} % en-dash as bullet symbol
+}
+
+\usepackage{threeparttable} % for papaja apa tables
+\setlength{\tabcolsep}{4pt} % horizontal space between table columns
+
+% styling for captions
+\usepackage[format=plain]{caption}
+\usepackage{marginfix} % load before sidenotes to improve sidenote positioning
+\usepackage{sidenotes}
+\usepackage{marginnote}
+\DeclareCaptionFont{caps}{\footnotesize}
+
+\captionsetup{
+  labelfont=caps,
+  textfont=caps,
+  skip=0pt,
+  belowskip=-6pt,
+  labelsep=newline
+}
+\DeclareCaptionStyle{sidecaption}{labelfont=caps,textfont=caps,skip=6pt,belowskip=0pt,labelsep=newline}
+\DeclareCaptionStyle{marginfigure}{labelfont=caps,textfont=caps,skip=6pt,belowskip=0pt,labelsep=newline}
+\DeclareCaptionStyle{margintable}{labelfont=caps,textfont=caps,skip=6pt,labelsep=newline}
+\DeclareCaptionStyle{longtable}{labelfont=caps,textfont=caps,skip=6pt,labelsep=newline}
+
+% reset sidenote counter at start of each chapter
+\let\oldchapter\chapter
+\def\chapter{%
+  \setcounter{sidenote}{1}%
+  \oldchapter
+}
+
+\usepackage{bbm}
+\usepackage{unicode-math}
+
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+
+% space above and below equations
+% \setlength{\abovedisplayskip}{0pt}
+% \setlength{\belowdisplayskip}{0pt}
+\usepackage[nodisplayskipstretch]{setspace}
+
+ % override quarto box settings
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[enhanced, borderline west={3pt}{0pt}{shadecolor}, breakable, interior hidden, frame hidden, boxrule=0pt, sharp corners]}{\end{tcolorbox}}\fi
+
+% index
+\usepackage{imakeidx}
+\makeindex[intoc=true] %, columns=3, columnseprule=true, options=-s latex/indexstyles.ist]
+
+% temporary settings for copyediting
+% \setstretch{2}
+% \usepackage{lineno}
+% \linenumbers
+
+%%%%%%%%%%%%%%%%%%
+% end preamble.tex
+%%%%%%%%%%%%%%%%%%

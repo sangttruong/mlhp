@@ -1,0 +1,24 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+.DS_Store
+*_files/
+*_cache/
+
+*.sublime-project
+
+~$*
+images/management/analysis_pipeline.pptx
+images/management/analysis_pipeline.pdf
+*.xls
+
+*.blg
+*.log
+*.toc
+*.aux
+# *.tex
+*.pdf
+
+/.quarto/
